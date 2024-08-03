@@ -11,6 +11,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             print('inside connect')
             self.sender_id = self.scope['url_route']['kwargs']['sender_id']
             self.receiver_id = self.scope['url_route']['kwargs']['receiver_id']
+            print('rec',self.receiver_id,'send',self.sender_id)
             self.room_group_name = f'chat_{min(self.sender_id, self.receiver_id)}_{max(self.sender_id, self.receiver_id)}'
             self.channel_name = self.channel_name
             await self.channel_layer.group_add(
@@ -119,12 +120,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def broadcast_messages_read(self,sender_id,receiver_id):
         try:
-            await self.mark_messages_from_receiver_as_read(self.sender_id,self.receiver_id)
+            message_ids=await self.mark_messages_from_receiver_as_read(self.sender_id,self.receiver_id)
+            print('message_ids',message_ids)
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     'type':'mark_msg_read',
-                    'receiver_id':self.receiver_id
+                    'receiver_id':self.receiver_id,
+                    'sender_id':self.sender_id,
+                    'message_ids':message_ids
                 }
             )
 
@@ -136,11 +140,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def mark_msg_read(self,event):
         try:
             receiver_id=event['receiver_id'] if 'receiver_id' in event else None
-            await self.send(text_data=json.dumps({
-                'event_name':"msg_read",
-                'receiver_id':receiver_id
+            sender_id=event['sender_id'] if 'sender_id' in event else None
+            message_ids=event['message_ids'] if 'message_ids' in event else None
+            if receiver_id != sender_id:
+                await self.send(text_data=json.dumps({
+                    'event_name':"msg_read",
+                    'receiver_id':receiver_id,
+                    'sender_id':sender_id,
+                    'message_ids':message_ids
 
-            }))
+                }))
 
         except Exception as ex:
             import traceback
@@ -240,4 +249,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def mark_messages_from_receiver_as_read(self,sender_id,receiver_id):
         messages = ChatModel.objects.filter(sender=receiver_id,receiver=sender_id,is_read=False)
+        message_ids = list(messages.values_list('id', flat=True))  
         messages.update(is_read=True,read_time=timezone.now())
+        return message_ids
