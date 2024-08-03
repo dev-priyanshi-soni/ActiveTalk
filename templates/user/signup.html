@@ -1,0 +1,86 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel='stylesheet' href='//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.9.0/bootstrap-table.min.css'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />   
+    </head>
+<body>
+   
+    <header>
+        <div class="container">
+            <div class="header_inner">
+                <div class="site_logo">
+                    <!-- <a href="" ><img src="{% static 'images/xincon-logo.svg' %}" class="img-fluid" alt="logo"></a> -->
+                </div>
+                <div class="support_portal_btn">
+                    <!-- <button><span><img src="{% static 'images/people-icon.svg' %}" class="img-fluid"></span><span class="notranslate">HHA Support Portal</span></button> -->
+                </div>
+                <div class="header_right_btns">
+                </div>
+
+               
+            </div>      
+        </div>
+       
+    </header>
+    </div>
+    </header>
+    <div id="snackbar" class="snackbar" style="margin-top:5px;"></div>
+    <section class="login_sec hha_login_sec login_sec_inner position-relative">
+        <div class="container">
+           
+            <div class="row">
+                <div class="col-lg-6 col-md-10  m-auto">
+                    <div class="login_form">
+                        {% if error_message %}
+                        <p id="errorMsgVal" style="color:red">{{ error_message }}</p>
+                        {% endif %}
+                        <form class="form_outer" method="post" action="signup">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label">Enter Username</label>
+                                <input type="text" name="username" id="username" class="form-control" required>
+                                <label class="form-label">Enter Password</label>
+                                <input type="text" name="password" id="password" class="form-control" required>
+                                <label class="form-label">Enter Full Name</label>
+                                <input type="text" name="full_name" id="fullName" class="form-control" required>
+                            </div>
+                            <div class="continue_btn">
+                                <button type="submit" class="btn">Signup</button>
+                            </div>
+                        </form>
+                        <div class="continue_btn">
+                            Already a User?
+                            <button onclick="window.location.href='{%url 'login_view' %}' " class="btn">Login</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <footer>
+        <div class="container">
+            <div class="footer_inner  text-center">
+                <div class="footer_top">
+                    <p>© 2024 · <a>Xincon</a> · <a href="https://xinconcare.com/privacy-policy/"> Privacy Policy</a> ·
+                        <a href="https://xinconcare.com/sitemap/"> Sitemap</a></p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+
+</body>
+
+</html>

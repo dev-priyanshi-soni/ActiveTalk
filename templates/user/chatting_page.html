@@ -1,0 +1,452 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href= "{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <link rel='stylesheet' href='//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.9.0/bootstrap-table.min.css'>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <title>Chat Page</title>
+    <!-- Include necessary CSS styles here -->
+    <style>
+        /* Container for the chat section */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 800px; /* Adjust as needed */
+            margin: 0 auto; /* Center the container */
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Enhanced shadow for depth */
+        }
+
+        /* Styles for chat messages display */
+        .chat-messages {
+            flex: 1; /* Takes up remaining space */
+            overflow-y: auto; /* Scrollable content */
+            padding: 10px;
+            background-color: #f9f9f9; /* Light background for chat messages */
+            border-radius: 8px;
+            margin-bottom: 10px; /* Space between messages and input */
+        }
+
+        /* Styles for individual message */
+        .sender_msg {
+            background-color: #d1e7dd;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 5px; /* Space between messages */
+            align-self: flex-end; /* Align to the right */
+            max-width: 70%; /* Limit the width of the message */
+        }
+
+        .reciver_msg {
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 5px; /* Space between messages */
+            align-self: flex-start; /* Align to the left */
+            max-width: 70%; /* Limit the width of the message */
+        }
+
+        /* Styles for the input and button */
+        .chat-input {
+            display: flex;
+            gap: 10px; /* Space between input and button */
+        }
+
+        #chat-message-input {
+            flex: 1; /* Takes up remaining space */
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        #send-button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #send-button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+        .receiver_msg{
+            background-color: #f1f0f0;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 10px;
+            width: 50%;
+            float: left;
+        }
+        .sender_msg{
+            background-color: #f1f0f0;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 10px;
+            width: 50%;
+            float: right;
+        }
+    </style>
+</head>
+<body>
+   
+    <div class="chat-container">
+        <h1>Chat with {{ other_user.full_name }}</h1>
+        <div id="snackbar">HIIIIiiii</div>
+        <div class="chat-messages">
+            {% for i in page_messages %}
+            {% if i.sender == request.user.id %}
+            <div class="sender_msg" id="{{i.id}}">
+                {% if i.parent_message %}
+                    <div style="background-color:#f2d9e6;border-radius:15px;height:70px;" id="{{i.parent_message.id}}" onclick="scrollAndHighlightMsg('{{i.parent_message.id}}')">
+                        <div style="background-color:#b3cccc;border-radius:15px;">{{i.parent_message.sender_full_name}}</div>
+                        <span>{{i.parent_message.message}}</span>
+                    </div>
+                {% endif %}
+                
+                <div>{{ i.message }} </div>
+                
+                <span>
+                    <script>
+                        // Convert ISO 8601 date string to a formatted date
+                        function formatDate(isoDate) {
+                            const date = new Date(isoDate);
+                            const hours = String(date.getHours()).padStart(2, '0');
+                            const minutes = String(date.getMinutes()).padStart(2, '0');
+                            const seconds = String(date.getSeconds()).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+                            const year = date.getFullYear();
+                            return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+                        }
+        
+                        document.write(formatDate('{{ i.sent_time }}'));
+                    </script>
+                </span>
+                <span>{{i.id}}</span>
+                <div><button class="btn btn-info" onclick="addDivtoChatBox('{{i.id}}')">Reply</button></div>
+                {% if i.is_read %}
+                    <div id="status-{{i.id}}"><i class="fa-solid fa-circle-check"></i></div>
+                {% else %}
+                    <div id="status-{{i.id}}"><i class="fa-regular fa-circle-check"></i></div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="receiver_msg" id="{{i.id}}">
+                <div>{{ i.message }} </div>
+
+                <span>
+                    <script>
+                        // Convert ISO 8601 date string to a formatted date
+                        function formatDate(isoDate) {
+                            const date = new Date(isoDate);
+                            const hours = String(date.getHours()).padStart(2, '0');
+                            const minutes = String(date.getMinutes()).padStart(2, '0');
+                            const seconds = String(date.getSeconds()).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+                            const year = date.getFullYear();
+                            return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+                        }
+        
+                        document.write(formatDate('{{ i.sent_time }}'));
+                    </script>
+                </span>
+                <span>{{i.id}}</span>
+                <div><button onclick="addDivtoChatBox('{{i.id}}')" class="btn btn-info" >Reply</button></div>
+                {% if i.is_read %}
+                    <div id="status-{{i.id}}"><i class="fa-solid fa-circle-check"></i></div>
+                {% else %}
+                    <div id="status-{{i.id}}"><i class="fa-regular fa-circle-check"></i></div>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+
+        </div>
+        <div class="chat-input">
+            <input type="text" id="chat-message-input" autocomplete="off" placeholder="Type your message...">
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <script>
+        var page=1;
+
+        function scrollAndHighlightMsg(messageIdToHighlight){
+            const targetDiv = document.getElementById(messageIdToHighlight);
+            if (targetDiv) {
+                targetDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                targetDiv.style.backgroundColor = '#90bcd4';
+                setTimeout(() => {
+                    targetDiv.style.backgroundColor = '';
+                }, 5000);
+            } else {
+                loadPreviousMessages().then(() => {
+                    scrollAndHighlightMsg(messageIdToHighlight);
+                });
+            }
+        }
+
+        function addDivtoChatBox(id){
+            var messageContent = document.getElementById(id);
+            var chatMessageInput = document.getElementById('chat-message-input');
+            if (messageContent && chatMessageInput) {
+                var parent = chatMessageInput.parentNode;
+                
+                parent.insertBefore(messageContent, chatMessageInput);
+            }
+            
+        }
+
+        function formatDate(isoDate) {
+            const date = new Date(isoDate);
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0'); 
+            const year = date.getFullYear();
+            return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+        }
+
+        function moveDivAbove(originalDivId, targetDivId) {
+            var originalDiv = document.getElementById(originalDivId);
+            var targetDiv = document.getElementById(targetDivId);
+        
+            if (originalDiv && targetDiv) {
+                var parent = targetDiv.parentNode;
+                parent.insertBefore(originalDiv, targetDiv);
+            }
+        }
+    
+        function createMessageDiv(messageText, isoDate,className,replyToMessageId,replyToMessageVal,messageID,isRead) {
+            
+            var divSenderMsg = document.createElement('div');
+            divSenderMsg.classList.add(className);
+            divSenderMsg.id = messageID;
+            var divMessage = document.createElement('div');
+            divMessage.textContent = messageText;
+            var spanDate = document.createElement('span');
+            spanDate.textContent = formatDate(isoDate);
+            var replyButtonDiv=document.createElement('div');
+            replyButtonDiv.innerHTML = `<button class="btn btn-info" onclick="addDivtoChatBox('${messageID}')">Reply</button>`;
+    
+            if(replyToMessageId){
+                var replyToDiv = document.createElement('div');
+                replyToDiv.style.backgroundColor = '#f2d9e6';
+                replyToDiv.style.borderRadius = '15px';
+                replyToDiv.style.height = '70px';
+                replyToDiv.id = replyToMessageId;
+                replyToDiv.setAttribute('onclick', `scrollAndHighlightMsg('${replyToMessageId}')`);
+            
+                var innerDiv = document.createElement('div');
+                innerDiv.style.backgroundColor = '#b3cccc';
+                innerDiv.style.borderRadius = '15px';
+                innerDiv.textContent = 'test';
+            
+                var span = document.createElement('span');
+                span.textContent = replyToMessageVal;
+            
+                replyToDiv.appendChild(innerDiv);
+                replyToDiv.appendChild(span);
+            
+                divSenderMsg.appendChild(replyToDiv);
+            }
+            divSenderMsg.appendChild(divMessage);
+            divSenderMsg.appendChild(spanDate);
+            divSenderMsg.appendChild(replyButtonDiv);
+
+            var divOfReadStatus = document.createElement('div');
+            divOfReadStatus.innerHTML = isRead ? `<i class="fa-solid fa-circle-check"></i>` : `<i class="fa-regular fa-circle-check">`;
+            divSenderMsg.appendChild(divOfReadStatus);
+         
+            document.querySelector('.chat-messages').appendChild(divSenderMsg);
+            var chatMessagesContainer = document.querySelector('.chat-messages');
+            chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+        }
+    </script>
+    
+    <script>
+        $(document).ready(function(){
+            var senderId = {{ request.user.id }};  
+            var receiverId = {{ receiver_id }};  
+
+            var chatSocket = new WebSocket(
+                'ws://' + window.location.host + '/ws/chat/' + senderId + '/' + receiverId + '/'
+            );
+
+            chatSocket.onopen = function(e) {
+                console.log("WebSocket connection opened.");
+            };
+
+            chatSocket.onmessage = function(e) {
+                var data = JSON.parse(e.data);
+                if(data.sender_id!={{request.user.id}}){
+                    createMessageDiv(data.message, new Date().toISOString(),'receiver_msg',data.reply_to_message_id,data.reply_to_message_val,data.id,data.is_read);
+                }
+                else{
+                    createMessageDiv(data.message, new Date().toISOString(),'sender_msg',data.reply_to_message_id,data.reply_to_message_val,data.id,data.is_read);
+                }
+               
+            };
+
+            chatSocket.onclose = function(e) {
+                console.log("WebSocket connection closed.");
+            };
+
+            chatSocket.onerror = function(e) {
+                console.log("WebSocket error: ", e);
+            };
+
+            $('#send-button').click(function() {
+                var messageInputDom = $('#chat-message-input');
+                var message = messageInputDom.val();
+                var chatInputDiv = document.querySelector('.chat-input');
+                var replyToMessageId="";
+
+                if (chatInputDiv) {
+                    var messages = chatInputDiv.querySelectorAll('.sender_msg, .receiver_msg');
+                    console.log("messages",messages);
+                    
+                    if (messages.length > 0) {
+                        debugger;
+                        messages.forEach(function(div) {
+                            if(div.id){
+                                replyToMessageId = div.id;  
+                                console.log("replyToMessageId",replyToMessageId);
+                            }
+                        });
+                    } else {
+                        console.log('There are no receiver_message or sender_message divs inside chat-input');
+                    }
+                }
+
+                chatSocket.send(JSON.stringify({
+                    'message': message,
+                    'replyToMessageId':replyToMessageId
+                }));
+                
+
+                messageInputDom.val('');
+                Array.from(document.querySelector('.chat-input').children).filter(child => child.classList.contains('sender_msg')).forEach(child => child.remove());
+                Array.from(document.querySelector('.chat-input').children).filter(child => child.classList.contains('receiver_msg')).forEach(child => child.remove());
+            });
+
+            $('#chat-message-input').on('keypress', function(e) {
+                if (e.which === 13) {
+                    $('#send-button').click();
+                }
+            });
+        });
+
+
+
+    </script>
+
+    <script>
+        
+        function showSnackbar(message,status){
+                    
+            var snackbar = document.getElementById("snackbar");
+            snackbar.textContent = message;
+            snackbar.style.display = "block";
+            snackbar.style.backgroundColor =status=='S'?"#d1e7dd":"#f8d7da";
+            snackbar.style.color =status=='S'?"#0f5132":"#842029";
+            snackbar.style.borderColor =status=='S'?"#badbcc":"#f5c2c7";
+        
+                setTimeout(function() {
+                    snackbar.style.display = "none";
+                }, 6000); 
+            
+        }
+
+
+        var chatMessagesContainer = document.querySelector('.chat-messages');
+            chatMessagesContainer.addEventListener('scroll', function() {
+                if (chatMessagesContainer.scrollTop === 0) {
+                    loadPreviousMessages();
+                }
+            });
+
+            function loadPreviousMessages() {
+                let senderId={{request.user.id}};
+                let receiverId={{other_user.id}};
+                page+=1;
+                fetch(`/get_previous_messages/${senderId}/${receiverId}/${page}`, {
+                    method: 'GET'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.Error=="NA"){
+                        let messagesData=data.page_messages;
+                        messagesData.forEach(message => {
+                            let className=message.sender==senderId?'sender_msg':'receiver_msg';
+                            prependMessageDiv(message.message, message.sent_time,message.id,className,message.is_read);
+                        });
+                    }
+                    else{
+                        showSnackbar("No more messages to show",'F');
+                    }
+                })
+                .catch(error => console.error('Error fetching previous messages:', error));
+            }
+
+            function showReplyMessage(replyContent, repliedMessageID) {
+                const chatContainer = document.getElementById('chat-container');
+                const repliedMessage = document.querySelector(`[id="${repliedMessageID}"]`);
+        
+                const replyMsgDiv = document.createElement('div');
+                replyMsgDiv.className = 'message reply_msg';
+                replyMsgDiv.innerHTML = `
+                    <div>
+                        <a href="#${repliedMessageID}">Replied to: ${repliedMessage.innerHTML}</a>
+                    </div>
+                    <div>${replyContent}</div>
+                    <span>${new Date().toLocaleTimeString()} ${new Date().toLocaleDateString()}</span>
+                `;
+        
+                chatContainer.appendChild(replyMsgDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        
+            function prependMessageDiv(messageText, isoDate,id,className,isRead) {
+                var divSenderMsg = document.createElement('div');
+                divSenderMsg.classList.add(className);
+                divSenderMsg.id=id;
+                var divMessage = document.createElement('div');
+                divMessage.textContent = messageText;
+                var spanDate = document.createElement('span');
+                spanDate.textContent = formatDate(isoDate);
+                var spanID = document.createElement('span');
+                spanID.textContent = "ID is"+id;
+                divSenderMsg.appendChild(divMessage);
+                divSenderMsg.appendChild(spanDate);
+                divSenderMsg.appendChild(spanID);
+                var divOfReply = document.createElement('div');
+                divOfReply.innerHTML = `<button onclick="addDivtoChatBox('${id}')" class="btn btn-info" >Reply</button>`;
+                var divOfReadStatus = document.createElement('div');
+                divOfReadStatus.innerHTML = isRead ? `<i class="fa-solid fa-circle-check"></i>` : `<i class="fa-regular fa-circle-check">`;
+                divSenderMsg.appendChild(divOfReply);
+                divSenderMsg.appendChild(divOfReadStatus);
+                chatMessagesContainer.insertBefore(divSenderMsg, chatMessagesContainer.firstChild);
+            }
+
+    </script>
+</body>
+</html>
