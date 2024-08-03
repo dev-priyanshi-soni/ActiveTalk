@@ -17,8 +17,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 self.channel_name
             )
-            await self.set_user_online(self.sender_id)
-            await self.mark_messages_from_receiver_as_read(self.sender_id,self.receiver_id)
+            await self.broadcast_user_status(self.sender_id,True)
+            await self.broadcast_messages_read(self.sender_id,self.receiver_id)
+            
             await self.accept()
         except Exception as ex:
             import traceback
@@ -35,7 +36,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
             # Mark sender as offline
-            await self.set_user_offline(self.sender_id)
+            await self.broadcast_user_status(self.sender_id,False)
         except Exception as ex:
             import traceback
             print(traceback.format_exc())
@@ -62,6 +63,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'sent_time': sent_time.isoformat(),
                     'is_read': chat_message.is_read,
                     'channel_name': self.channel_name,
+                    'id':chat_message.id
                 }
 
                 if reply_to_message_id:
@@ -95,20 +97,96 @@ class ChatConsumer(AsyncWebsocketConsumer):
             is_read = event['is_read']
             reply_to_message_id=event['reply_to_message_id'] if 'reply_to_message_id' in event else None
             reply_to_message_val=event['reply_to_message_val'] if 'reply_to_message_val' in event else None
+            message_id=event['id'] if 'id' in event else None
 
             await self.send(text_data=json.dumps({
+                'event_name':"chat_message",
                 'message': message,
                 'sender_id': sender_id,
                 'receiver_id': receiver_id,
                 'sent_time': sent_time,
                 'is_read': is_read,
                 'reply_to_message_id':reply_to_message_id,
-                'reply_to_message_val':reply_to_message_val
+                'reply_to_message_val':reply_to_message_val,
+                'id':message_id
             }))
+
         except Exception as ex:
             import traceback
             print(traceback.format_exc())
             await self.close()
+
+
+    async def broadcast_messages_read(self,sender_id,receiver_id):
+        try:
+            await self.mark_messages_from_receiver_as_read(self.sender_id,self.receiver_id)
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type':'mark_msg_read',
+                    'receiver_id':self.receiver_id
+                }
+            )
+
+        except Exception as ex:
+            import traceback
+            print(traceback.format_exc())
+            await self.close()
+
+    async def mark_msg_read(self,event):
+        try:
+            receiver_id=event['receiver_id'] if 'receiver_id' in event else None
+            await self.send(text_data=json.dumps({
+                'event_name':"msg_read",
+                'receiver_id':receiver_id
+
+            }))
+
+        except Exception as ex:
+            import traceback
+            print(traceback.format_exc())
+            await self.close()
+
+
+    async def broadcast_user_status(self,user_id,is_online):
+        try:
+            
+            if not is_online:
+                await self.set_user_offline(self.sender_id)
+            else:
+                await self.set_user_online(self.sender_id)
+
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {   
+                    'type':'send_status',
+                    'user_id':user_id,
+                    'is_online':is_online
+                }
+            )
+        except Exception as ex:
+            import traceback
+            print(traceback.format_exc())
+            await self.close()
+        
+         
+
+    async def send_status(self,event):
+        try:
+            user_id=event['user_id'] if 'user_id' in event else None
+            is_online=event['is_online'] if 'is_online' in event else None
+            await self.send(text_data=json.dumps({
+                'event_name':"status",
+                'user_id':user_id,
+                'is_online':is_online
+            }))
+
+
+        except Exception as ex:
+            import traceback
+            print(traceback.format_exc())
+            await self.close()
+
 
     async def message_read(self, event):
         try:
@@ -116,6 +194,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             read_time = event['read_time']
 
             await self.send(text_data=json.dumps({
+                'event_name':"message_read",
                 'message_id': message_id,
                 'read_time': read_time,
                 'is_read': True,

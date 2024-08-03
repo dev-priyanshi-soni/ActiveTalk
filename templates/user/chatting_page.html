@@ -234,6 +234,9 @@
                 parent.insertBefore(originalDiv, targetDiv);
             }
         }
+        function deleteChatMessage(){
+            
+        }
     
         function createMessageDiv(messageText, isoDate,className,replyToMessageId,replyToMessageVal,messageID,isRead) {
             
@@ -244,8 +247,8 @@
             divMessage.textContent = messageText;
             var spanDate = document.createElement('span');
             spanDate.textContent = formatDate(isoDate);
-            var replyButtonDiv=document.createElement('div');
-            replyButtonDiv.innerHTML = `<button class="btn btn-info" onclick="addDivtoChatBox('${messageID}')">Reply</button>`;
+            var replyButtonDiv=document.createElement('div');''
+            replyButtonDiv.innerHTML = `<button class="btn btn-info" onclick="addDivtoChatBox('${messageID}')">Reply</button><button style="del-btn" onclick="deleteChatMessage()">Delete</button>`;
     
             if(replyToMessageId){
                 var replyToDiv = document.createElement('div');
