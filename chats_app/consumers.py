@@ -19,10 +19,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 self.channel_name
             )
-            # await self.broadcast_user_status(self.sender_id,True,self.receiver_id)
-            await self.broadcast_messages_read(self.sender_id,self.receiver_id)
             
+            await self.broadcast_messages_read(self.sender_id,self.receiver_id)
             await self.accept()
+            await self.send_receiver_user_status(self.receiver_id)
         except Exception as ex:
             import traceback
             print(traceback.format_exc())
@@ -156,29 +156,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             import traceback
             print(traceback.format_exc())
             await self.close()
-
-
-    # async def broadcast_user_status(self,event):
-    #     try:            
-    #         is_online=event['is_online']
-    #         user_id=event['user_id']
-    #         if not is_online:
-    #             await self.set_user_offline(user_id)
-    #         else:
-    #             await self.set_user_online(user_id)
-                
-    #         await self.channel_layer.group_send(
-    #             self.room_group_name,
-    #             {   
-    #                 'type':'send_status',
-    #                 'user_id':user_id,
-    #                 'is_online':is_online                
-    #             }
-    #         )
-    #     except Exception as ex:
-    #         import traceback
-    #         print(traceback.format_exc())
-         
          
     async def send_status(self,event):
         try:
@@ -215,26 +192,29 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close()
 
     def get_user_online_status(self,user_id):
-        # user_rec=User.objects.filter(id=user_id)
-        # if user_rec.exists():
-        #     user_rec=user_rec.last()
-        #     return user_rec.is_active
-        # return False
         try:
             user_rec = User.objects.get(id=user_id)  # Use get() for direct access
-            return user_rec.is_active
+            return user_rec.is_online
         except User.DoesNotExist:
             return False
 
-    async def get_reciever_status(self,user_id):
+    async def send_receiver_user_status(self,user_id):
         try:
             user_online_status=await sync_to_async(self.get_user_online_status)(user_id)
-            return user_online_status
+            await self.send(text_data=json.dumps({
+                'event_name':'status',
+                'user_id':user_id,
+                'is_online':user_online_status
+
+            }))
 
         except Exception as ex:
             import traceback
             print(traceback.format_exc())
             return False
+        
+
+
 
     @database_sync_to_async
     def get_message_record_by_id(self, message_id):
@@ -256,21 +236,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         chat_message.save()
         return None
 
-    @database_sync_to_async
-    def set_user_online(self, user_id):
-        user_profile = User.objects.get(id=user_id)
-        user_profile.is_online = True
-        user_profile.last_seen = timezone.now()
-        user_profile.save()
-        return None
-
-    @database_sync_to_async
-    def set_user_offline(self, user_id):
-        user_profile = User.objects.get(id=user_id)
-        user_profile.is_online = False
-        user_profile.last_seen = timezone.now()
-        user_profile.save()
-        return None
     
     @database_sync_to_async
     def mark_messages_from_receiver_as_read(self,sender_id,receiver_id):

@@ -10,10 +10,14 @@ from django.db.models import Q
 
 @receiver(user_logged_in)
 def user_logged_in_handler(sender, request, user, **kwargs):
+    user.is_online=True
+    user.save()
     broadcast_user_status(user.id, True)
 
 @receiver(user_logged_out)
 def user_logged_out_handler(sender, request, user, **kwargs):
+    user.is_online=False
+    user.save()
     broadcast_user_status(user.id, False)
 
 def broadcast_user_status(user_id, is_online):
