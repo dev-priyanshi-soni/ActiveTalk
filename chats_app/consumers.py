@@ -5,7 +5,7 @@ from chats_app.models import ChatModel
 from auth_app.models import User
 from channels.db import database_sync_to_async
 from asgiref.sync import  sync_to_async
-
+from django.db.models import Q
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         try:
@@ -19,7 +19,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 self.channel_name
             )
-            await self.broadcast_user_status(self.sender_id,True,self.receiver_id)
+            # await self.broadcast_user_status(self.sender_id,True,self.receiver_id)
             await self.broadcast_messages_read(self.sender_id,self.receiver_id)
             
             await self.accept()
@@ -38,7 +38,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
             # Mark sender as offline
-            await self.broadcast_user_status(self.sender_id,False,None)
+            # await self.broadcast_user_status(self.sender_id,False,None)
         except Exception as ex:
             import traceback
             print(traceback.format_exc())
@@ -158,43 +158,37 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close()
 
 
-    async def broadcast_user_status(self,user_id,is_online,reciever_id):
-        try:
-            receiver_status=None
-            
-            if not is_online:
-                await self.set_user_offline(user_id)
-                receiver_status=False
-            else:
-                await self.set_user_online(user_id)
-                if reciever_id:
-                    receiver_status=await self.get_reciever_status(reciever_id)
+    # async def broadcast_user_status(self,event):
+    #     try:            
+    #         is_online=event['is_online']
+    #         user_id=event['user_id']
+    #         if not is_online:
+    #             await self.set_user_offline(user_id)
+    #         else:
+    #             await self.set_user_online(user_id)
                 
-                    
-
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {   
-                    'type':'send_status',
-                    'user_id':user_id,
-                    'is_online':is_online,
-                    'receiver_status':receiver_status
-                }
-            )
-        except Exception as ex:
-            import traceback
-            print(traceback.format_exc())
+    #         await self.channel_layer.group_send(
+    #             self.room_group_name,
+    #             {   
+    #                 'type':'send_status',
+    #                 'user_id':user_id,
+    #                 'is_online':is_online                
+    #             }
+    #         )
+    #     except Exception as ex:
+    #         import traceback
+    #         print(traceback.format_exc())
+         
          
     async def send_status(self,event):
         try:
-            user_id=event['user_id'] if 'user_id' in event else None
+            active_user_id=event['user_id'] if 'user_id' in event else None
             is_online=event['is_online'] if 'is_online' in event else None
-            receiver_status=event['receiver_status'] if 'receiver_status' in event else None
+
             await self.send(text_data=json.dumps({
                 'event_name':"status",
-                'user_id':user_id,
-                'is_online':is_online,
-                'receiver_status':receiver_status
+                'user_id':active_user_id,
+                'is_online':is_online
             }))
 
 

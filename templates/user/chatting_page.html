@@ -310,12 +310,16 @@
                     }
                 }
                 else if(data.event_name=="status"){
-                    if(data.receiver_status==true){
-                        $("#userStatus").text('Online');
+                    if(data.user_id==receiverId){
+                        if(data.is_online){
+                            $("#userStatus").text('Online');
+                        }
+                        else{
+                            $("#userStatus").text('Offline');
+                        }
+                            
                     }
-                    else{
-                        $("#userStatus").text('Offline');
-                    }
+                    
                     
                 }
                 else if(data.event_name=="msg_read"){
