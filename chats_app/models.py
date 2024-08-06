@@ -16,13 +16,14 @@ class ChatModel(models.Model):
 class Group(models.Model):   
     name=models.CharField(max_length=400,null=True,blank=True)
     users=models.ManyToManyField(User,through='GroupMemberships',related_name="group_users")
-    created_at=models.DateTimeField(null=False)
+    created_at=models.DateTimeField(null=False,auto_now_add=True)
     created_by= models.ForeignKey(to=User,on_delete=models.SET_NULL,null=True)
 
 class GroupMemberships(models.Model):  
     user=models.ForeignKey(to=User,on_delete=models.SET_NULL,null=True)
     is_admin=models.BooleanField(default=False)
     group=models.ForeignKey(to=Group,on_delete=models.SET_NULL,null=True)
+    joined_at=models.DateTimeField(auto_now_add=True)
 
 class GroupMessages(models.Model): 
     sender= models.ForeignKey(to=User,related_name='group_msg_sender_user' ,on_delete=models.SET_NULL,null=True)

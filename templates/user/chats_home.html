@@ -9,15 +9,37 @@
     <title></title>
     <link rel="stylesheet" href= "{% static 'css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+
     <link rel='stylesheet' href='//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.9.0/bootstrap-table.min.css'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
 <body>
+    <div class="modal" tabindex="-1" role="dialog" id="createGroup">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Create group</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <input name="groupName" id="groupName" required>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" onclick="createGroupAPICall()">Save changes</button>
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
     <div>Friends List</div>
     <button onclick="window.location.href='{% url 'signout' %}'"
     >Logout</button>
+
+    <button onclick="showCreateGroupModal()" > Create group </button>
     <div>
         {% for user in friends_data %}
         <div id="{{user.id}}">
@@ -36,5 +58,59 @@
         </div>
         {% endfor %}
     </div>
+    <div>
+      groups data
+      {% for obj in groups_data %}
+      <div id="{{obj.id}}">
+        {{obj.name}}
+      </div>
+      {% endfor %}
+    </div>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/css/toastr.css" rel="stylesheet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/js/toastr.js"></script>
+
+    <script>
+
+        function showCreateGroupModal(){
+            $("#createGroup").modal("show");
+        }
+
+        function hideCreateGroupModal(){
+            $("#createGroup").modal("hide");
+        }
+
+        function createGroupAPICall(){
+            var groupName = $("#groupName").val();
+            var csrfToken = '{{csrf_token}}';
+            $.ajax({
+              type: "POST",
+              url: "/create_group/",
+              data: JSON.stringify({
+                  name: groupName
+              }),
+              contentType: "application/json",
+              processData: false,
+              headers: {
+                  'X-CSRFToken': csrfToken
+              },
+              success: function(response){
+                if(response.Error=="NA"){
+                  toastr.info('Group created successfully!');
+                }
+                else{
+                  toastr.error(response.Error);
+                }
+                 
+                  hideCreateGroupModal();
+              },
+              error: function(response){
+                  toastr.error('An error occurred while creating the group.');
+              }
+          });
+        }
+    </script>
+
 </body>
 </html>

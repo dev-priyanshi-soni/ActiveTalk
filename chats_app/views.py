@@ -6,6 +6,7 @@ from django.db.models import *
 from django.core.paginator import Paginator
 from .serializer import ChatModelSerializer
 import json
+from django.contrib.auth.decorators import login_required
 
 def home(request):
     if request.user.is_authenticated:
@@ -16,7 +17,8 @@ def home(request):
         friend_user_ids = {user_id for user_id_tuple in user_ids for user_id in user_id_tuple if user_id and user_id != user.id}
         friends_data = User.objects.filter(id__in=friend_user_ids)
         users_data=User.objects.all().exclude(id__in=friend_user_ids).exclude(id=user.id)
-        return render(request,'user/chats_home.html',{'users_data':users_data,'friends_data':friends_data})
+        groups_data=Group.objects.filter(groupmemberships__user=request.user)
+        return render(request,'user/chats_home.html',{'users_data':users_data,'friends_data':friends_data,'groups_data':groups_data})
     return render(request,'user/login.html')
 
 
@@ -72,3 +74,37 @@ def reply_to_message(request,sender_id,receiver_id,message_id):
         return JsonResponse({'page_messages': list(),'Error':'Auth Error','Status':'Auth Error'})
     except Exception as ex:
         return JsonResponse({'page_messages': list(),'Error':'Some Error Occurred','Status':str(ex)})
+    
+@login_required
+def join_group(request,group_id):
+    try:
+        if request.method=='GET':
+            group_rec=Group.objects.filter(id=group_id)
+            if not group_rec.exists():
+                return JsonResponse({'Error':"group not exists",'Status':"group not found"})
+            group_rec=group_rec.last()
+            group_member=GroupMemberships.objects.filter(group=group_rec,user=request.user)
+            if group_member.exists():
+                return JsonResponse({'Error':"Already in group",'Status':"Already in group"})
+            obj=GroupMemberships.objects.create(group=group_rec,user=request.user)
+            return JsonResponse({'Error':"NA","Status":"Success"})
+        return JsonResponse({'Error':"Method Error","Status":"method Error"})
+    except Exception as ex:
+        return JsonResponse({'Error':'Some Error Occurred','Status':str(ex)})
+
+@login_required
+def create_group(request):
+    try:
+        if request.method=='POST':
+            req_body=request.body.decode("utf-8")
+            body=json.loads(req_body)
+            group_name=body.get("name")
+            group_rec=Group.objects.filter(name=group_name)
+            if  group_rec.exists():
+                return JsonResponse({'Error':"group already exists",'Status':"group already exists"})
+            group_rec=Group.objects.create(name=group_name)
+            group_member_rec=GroupMemberships.objects.create(group=group_rec,is_admin=True,user=request.user)
+            return JsonResponse({'Error':"NA","Status":"Success"})
+        return JsonResponse({'Error':"Method Error","Status":"method Error"})
+    except Exception as ex:
+        return JsonResponse({'Error':'Some Error Occurred','Status':str(ex)})
