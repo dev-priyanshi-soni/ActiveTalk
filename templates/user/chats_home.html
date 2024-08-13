@@ -58,10 +58,11 @@
         </div>
         {% endfor %}
     </div>
+    
     <div>
       groups data
       {% for obj in groups_data %}
-      <div id="{{obj.id}}">
+      <div id="{{obj.id}}" onclick="window.location.href='group_chat/{{obj.id}}/' ">
         {{obj.name}}
       </div>
       {% endfor %}

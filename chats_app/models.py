@@ -26,6 +26,7 @@ class GroupMemberships(models.Model):
     joined_at=models.DateTimeField(auto_now_add=True)
 
 class GroupMessages(models.Model): 
+    group=models.ForeignKey(to=Group,related_name="group",on_delete=models.CASCADE)
     sender= models.ForeignKey(to=User,related_name='group_msg_sender_user' ,on_delete=models.SET_NULL,null=True)
     message=models.CharField(max_length=300,null=True,blank=True)
     sent_time=models.DateTimeField(null=False)

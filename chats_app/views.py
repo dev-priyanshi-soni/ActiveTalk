@@ -1,4 +1,4 @@
-from django.shortcuts import render,get_object_or_404
+from django.shortcuts import render,get_object_or_404,redirect
 from django.http import JsonResponse
 from auth_app.models import User
 from chats_app.models import *
@@ -108,3 +108,19 @@ def create_group(request):
         return JsonResponse({'Error':"Method Error","Status":"method Error"})
     except Exception as ex:
         return JsonResponse({'Error':'Some Error Occurred','Status':str(ex)})
+
+@login_required
+def group_chat(request,group_id):
+    # return render(request,'group_chats.html')
+    group_data=Group.objects.filter(pk=group_id)
+    if not group_data.exists():
+        return redirect("home")
+
+    group_data=group_data.last()
+    group_chat_messages=GroupMessages.objects.filter(group=group_data)
+    paginator = Paginator(group_chat_messages, 10)  
+    page_number = request.GET.get('page', 1)  
+    page_messages = paginator.get_page(page_number)  
+    page_messages=list(page_messages)[::-1]
+    serialized_data = ChatModelSerializer(page_messages, many=True)
+    return render(request,'user/group_chats.html',{'group_chat_messages':serialized_data,'group':group_data})

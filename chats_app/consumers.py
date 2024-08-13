@@ -243,3 +243,48 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message_ids = list(messages.values_list('id', flat=True))  
         messages.update(is_read=True,read_time=timezone.now())
         return message_ids
+    
+
+class GroupConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        try:
+            print('inside connect')
+            self.group_id = self.scope['url_route']['kwargs']['group_id']
+            self.room_group_name = f'group_chat_{self.group_id}'
+            self.channel_name = self.channel_name
+            await self.channel_layer.group_add(
+                self.room_group_name,
+                self.channel_name
+            )
+
+            await self.accept()
+        except Exception as ex:
+            import traceback
+            print(traceback.format_exc())
+            await self.close()
+
+    async def disconnect(self, close_code):
+        try:
+            print('inside dis connect')
+            # Leave room group
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
+        except Exception as ex:
+            import traceback
+            print(traceback.format_exc())
+            await self.close()
+
+    async def receive(self, text_data):
+        try:
+            print('inside receive')
+            text_data_json = json.loads(text_data)
+            message = text_data_json.get('message')
+            
+        except Exception as ex:
+            import traceback
+            print(traceback.format_exc())
+            await self.close()
+
+
