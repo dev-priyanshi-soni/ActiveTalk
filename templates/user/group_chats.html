@@ -10,7 +10,8 @@
     <link rel='stylesheet' href='//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.9.0/bootstrap-table.min.css'>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
     <title>Chat Page</title>
     <!-- Include necessary CSS styles here -->
     <style>
@@ -100,13 +101,42 @@
     </style>
 </head>
 <body>
-   
+
     <div class="chat-container">
         <h1>{{group.name}}</h1>
-        <h3 id="userStatus">Offline</h3>
+        <h3 id="">Created on: 
+
+            <script>
+                console.log("group is",'{{group}}');
+                // Convert ISO 8601 date string to a formatted date
+                function formatDate(isoDate) {
+                    const date = new Date(isoDate);
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+                    const year = date.getFullYear();
+                    return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+                }
+
+                document.write(formatDate('{{group.created_at}}'));
+            </script>
+        </h3>
+
+        {% if request.user.id == group_admin %}
+            Admin: You
+            <button onclick="copyLink('{{group.id}}')">Copy group Link and invite friends</button>
+        {% else %}
+            Admin : {{group_admin_name}}
+        {% endif %}
+
         <div id="snackbar"></div>
         <div class="chat-messages">
-            {% for i in page_messages %}
+            <script>
+                console.log("group_chat_messages",'{{group_chat_messages}}')
+            </script>
+            {% for i in group_chat_messages %}
             {% if i.sender == request.user.id %}
             <div class="sender_msg" id="{{i.id}}">
                 {% if i.parent_message %}
@@ -185,6 +215,7 @@
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
     
     <script>
@@ -240,7 +271,7 @@
             
         }
     
-        function createMessageDiv(messageText, isoDate,className,replyToMessageId,replyToMessageVal,messageID,isRead) {
+        function createMessageDiv(messageText, isoDate,className,replyToMessageId,replyToMessageVal,messageID,isRead,senderName) {
             
             var divSenderMsg = document.createElement('div');
             divSenderMsg.classList.add(className);
@@ -286,6 +317,35 @@
             chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
         }
     </script>
+
+    <script>
+        function copyLink(groupId){
+            let textToCopy = `Click on this link to join the group ${window.location.origin}/join_group/${groupId}/`;
+
+            const tempTextarea = document.createElement('textarea');
+            document.body.appendChild(tempTextarea);
+
+            tempTextarea.value = textToCopy;
+
+            tempTextarea.select();
+
+            document.execCommand('copy');
+
+            document.body.removeChild(tempTextarea);
+
+            Toastify({
+                text: "Link copied to clipboard!",
+                duration: 3000, // Duration in milliseconds
+                gravity: "bottom", // `top` or `bottom`
+                position: "center", // `left`, `center`, or `right`
+                stopOnFocus: true, // Prevents dismissing of toast on hover
+                style: {
+                    background: "#333", // Background color using the new property
+                }
+            }).showToast();
+
+        }
+    </script>
     
     <script>
         $(document).ready(function(){
@@ -304,10 +364,10 @@
                 var data = JSON.parse(e.data);
                 if(data.event_name=="chat_message"){
                     if(data.sender_id!={{request.user.id}}){
-                        createMessageDiv(data.message, new Date().toISOString(),'receiver_msg',data.reply_to_message_id,data.reply_to_message_val,data.id,data.is_read);
+                        createMessageDiv(data.message, new Date().toISOString(),'receiver_msg',data.reply_to_message_id,data.reply_to_message_val,data.id,data.is_read,data.sender_name);
                     }
                     else{
-                        createMessageDiv(data.message, new Date().toISOString(),'sender_msg',data.reply_to_message_id,data.reply_to_message_val,data.id,data.is_read);
+                        createMessageDiv(data.message, new Date().toISOString(),'sender_msg',data.reply_to_message_id,data.reply_to_message_val,data.id,data.is_read,data.sender_name);
                     }
                 }
                 else if(data.event_name=="status"){
@@ -356,7 +416,7 @@
             $('#send-button').click(function() {
                 var messageInputDom = $('#chat-message-input');
                 var message = messageInputDom.val();
-                var chatInputDiv = document.querySelector('.chat-input');
+                var chatInputDiv = document.querySelector('.chat-messages');
                 var replyToMessageId="";
 
                 if (chatInputDiv) {
@@ -416,35 +476,35 @@
         }
 
 
-        // var chatMessagesContainer = document.querySelector('.chat-messages');
-        //     chatMessagesContainer.addEventListener('scroll', function() {
-        //         if (chatMessagesContainer.scrollTop === 0) {
-        //             loadPreviousMessages();
-        //         }
-        //     });
+        var chatMessagesContainer = document.querySelector('.chat-messages');
+            chatMessagesContainer.addEventListener('scroll', function() {
+                if (chatMessagesContainer.scrollTop === 0) {
+                    loadPreviousMessages();
+                }
+            });
 
-        //     function loadPreviousMessages() {
-        //         let senderId={{request.user.id}};
-        //         let receiverId={{other_user.id}};
-        //         page+=1;
-        //         fetch(`/get_previous_messages/${senderId}/${receiverId}/${page}`, {
-        //             method: 'GET'
-        //         })
-        //         .then(response => response.json())
-        //         .then(data => {
-        //             if(data.Error=="NA"){
-        //                 let messagesData=data.page_messages;
-        //                 messagesData.forEach(message => {
-        //                     let className=message.sender==senderId?'sender_msg':'receiver_msg';
-        //                     prependMessageDiv(message.message, message.sent_time,message.id,className,message.is_read);
-        //                 });
-        //             }
-        //             else{
-        //                 showSnackbar("No more messages to show",'F');
-        //             }
-        //         })
-        //         .catch(error => console.error('Error fetching previous messages:', error));
-        //     }
+            function loadPreviousMessages() {
+                let senderId={{request.user.id}};
+                let groupId='{{group.id}}';
+                page+=1;
+                fetch(`/get_previous_group_chats_messages/${groupId}/${page}`, {
+                    method: 'GET'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.Error=="NA"){
+                        let messagesData=data.page_messages;
+                        messagesData.forEach(message => {
+                            let className=message.sender==senderId?'sender_msg':'receiver_msg';
+                            prependMessageDiv(message.message, message.sent_time,message.id,className,message.is_read);
+                        });
+                    }
+                    else{
+                        showSnackbar("No more messages to show",'F');
+                    }
+                })
+                .catch(error => console.error('Error fetching previous messages:', error));
+            }
 
             function showReplyMessage(replyContent, repliedMessageID) {
                 const chatContainer = document.getElementById('chat-container');

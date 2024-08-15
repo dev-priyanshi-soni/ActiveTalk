@@ -4,7 +4,7 @@ from auth_app.models import User
 from chats_app.models import *
 from django.db.models import *
 from django.core.paginator import Paginator
-from .serializer import ChatModelSerializer
+from .serializer import ChatModelSerializer,GroupChatsModelSerializer,GroupSerializer
 import json
 from django.contrib.auth.decorators import login_required
 
@@ -78,7 +78,7 @@ def reply_to_message(request,sender_id,receiver_id,message_id):
 @login_required
 def join_group(request,group_id):
     try:
-        if request.method=='GET':
+        if request.method=='POST':
             group_rec=Group.objects.filter(id=group_id)
             if not group_rec.exists():
                 return JsonResponse({'Error':"group not exists",'Status':"group not found"})
@@ -88,7 +88,7 @@ def join_group(request,group_id):
                 return JsonResponse({'Error':"Already in group",'Status':"Already in group"})
             obj=GroupMemberships.objects.create(group=group_rec,user=request.user)
             return JsonResponse({'Error':"NA","Status":"Success"})
-        return JsonResponse({'Error':"Method Error","Status":"method Error"})
+        return render(request,'user/joining_group_page.html',{'group_id':group_id})
     except Exception as ex:
         return JsonResponse({'Error':'Some Error Occurred','Status':str(ex)})
 
@@ -111,16 +111,42 @@ def create_group(request):
 
 @login_required
 def group_chat(request,group_id):
-    # return render(request,'group_chats.html')
     group_data=Group.objects.filter(pk=group_id)
     if not group_data.exists():
         return redirect("home")
-
     group_data=group_data.last()
-    group_chat_messages=GroupMessages.objects.filter(group=group_data)
+    serialized_group_data=GroupSerializer(group_data).data
+    group_admin_id=None
+    group_admin_name=None
+    group_admin=GroupMemberships.objects.filter(group__id=group_id,is_admin=True)
+    if group_admin.exists():
+        group_admin=group_admin.last()
+        group_admin_id=group_admin.user.id
+        group_admin_name=group_admin.user.full_name
+    group_chat_messages=GroupMessages.objects.filter(group=group_data).order_by('-id')  
     paginator = Paginator(group_chat_messages, 10)  
     page_number = request.GET.get('page', 1)  
     page_messages = paginator.get_page(page_number)  
     page_messages=list(page_messages)[::-1]
-    serialized_data = ChatModelSerializer(page_messages, many=True)
-    return render(request,'user/group_chats.html',{'group_chat_messages':serialized_data,'group':group_data})
+    serialized_data = GroupChatsModelSerializer(page_messages, many=True)
+    return render(request,'user/group_chats.html',{'group_chat_messages':serialized_data.data,'group':serialized_group_data,'group_admin':group_admin_id,'group_admin_name':group_admin_name})
+
+def get_previous_group_chats_messages(request,group_id,page):
+    try:
+        if request.user.is_authenticated:
+            group_data=Group.objects.filter(pk=group_id)
+            if not group_data.exists():
+                return JsonResponse({'page_messages': list(),'Error':'group not found','Status':'group not found'})
+            group_data=group_data.last()
+            group_chat_messages=GroupMessages.objects.filter(group=group_data).order_by('-id')  
+            paginator = Paginator(group_chat_messages, 10)  
+            page_number = page
+            if page>paginator.num_pages:
+                return JsonResponse({'page_messages': list(),'Error':'NA','Status':'Success'})
+            page_messages = paginator.get_page(page_number)  
+            page_messages=list(page_messages)[::-1]
+            serialized_data = GroupChatsModelSerializer(page_messages, many=True)
+            return JsonResponse({'page_messages': serialized_data.data,'Error':'NA','Status':'Success'})
+        return JsonResponse({'page_messages': list(),'Error':'Auth Error','Status':'Auth Error'})
+    except Exception as ex:
+        return JsonResponse({'page_messages': list(),'Error':'Some Error Occurred','Status':str(ex)})

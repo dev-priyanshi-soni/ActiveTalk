@@ -19,3 +19,30 @@ class ChatModelSerializer(serializers.ModelSerializer):
             }
         return None
         
+
+class GroupChatsModelSerializer(serializers.ModelSerializer):
+    parent_message = serializers.SerializerMethodField()
+    sender_name=serializers.SerializerMethodField()
+    class Meta:
+        model = GroupMessages
+        fields = '__all__'
+
+    def get_parent_message(self, obj):
+        if obj.parent_message:
+            return {
+                'id': obj.parent_message.id,
+                'message': obj.parent_message.message,
+                'sender': obj.parent_message.sender.id,
+                'sender_full_name': obj.parent_message.sender.full_name,
+                'receiver': obj.parent_message.receiver.id
+            }
+        return None
+    
+    def get_sender_name(self,obj):
+        if obj.sender:
+            return obj.sender.full_name
+        
+class GroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = '__all__'

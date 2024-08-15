@@ -1,7 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.utils import timezone
-from chats_app.models import ChatModel
+from chats_app.models import *
 from auth_app.models import User
 from channels.db import database_sync_to_async
 from asgiref.sync import  sync_to_async
@@ -278,13 +278,72 @@ class GroupConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         try:
+            message_sent_time=timezone.now()
             print('inside receive')
             text_data_json = json.loads(text_data)
             message = text_data_json.get('message')
-            
+            reply_to_message_id=text_data_json.get("reply_to_message_id")
+            if message:#it means user sent a new message and we need to broadcast it into the group
+                sender_user=self.scope['user'].id
+                sender_name=self.scope['user'].full_name
+                msg_id=await self.create_message_record(self.group_id,sender_user,message_sent_time,reply_to_message_id,message)
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type':'broadcast_sender_msg_in_group',
+                        'message':message,
+                        'message_id':msg_id,
+                        'reply_to_message_id':reply_to_message_id,
+                        'sender_id':sender_user,
+                        'sender_name':sender_name
+
+                    }
+                )
         except Exception as ex:
             import traceback
             print(traceback.format_exc())
             await self.close()
+
+    async def broadcast_sender_msg_in_group(self,event):
+        try:
+            message=event['message'] if 'message' in event else None
+            message_id=event['message_id'] if 'message_id' in event else None
+            reply_to_message_id=event['reply_to_message_id'] if 'reply_to_message_id' in event else None
+            sender_id=event['sender_id'] if 'sender_id' in event else None
+            await self.send(text_data=json.dumps({
+                'message':message,
+                'message_id':message_id,
+                'reply_to_message_id':reply_to_message_id,
+                'event_name':'chat_message',
+                'sender_id':sender_id
+
+            }))
+        except Exception as ex:
+            import traceback
+            print(traceback.format_exc())
+            await self.close()
+
+    @database_sync_to_async
+    def create_message_record(self,group_id,sender_user,message_sent_time,reply_to_message_id,message):
+        message = GroupMessages.objects.create(
+            group_id=group_id,
+            sender_id=sender_user,
+            message=message,
+            sent_time=message_sent_time,
+            parent_message_id=reply_to_message_id
+        )
+        return message.id
+        
+    @database_sync_to_async
+    def get_group_members(group_id):
+        group_members = GroupMemberships.objects.filter(group_id=group_id).select_related('user')
+        return group_members
+
+    @database_sync_to_async
+    def create_group_msg_record(group_members,message):#this function is used to create record of a mesage being read by a user
+        GroupMessageRead.objects.bulk_create([
+            GroupMessageRead(user=member.user, group_message=message) 
+            for member in group_members
+        ])
 
 
