@@ -98,6 +98,40 @@
             width: 50%;
             float: right;
         }
+
+        .receiver_msg {
+        position: relative;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+        margin-bottom: 10px;
+        }
+
+        .senderNameBlock {
+        font-weight: bold;
+        color: #007bff; /* Blue color for the sender's name */
+        background-color: #e9f5ff; /* Light blue background for highlighting */
+        border: 1px solid #007bff; /* Border color matching the text */
+        border-radius: 5px;
+        padding: 5px 10px;
+        margin-bottom: 10px; /* Space below the sender's name */
+        font-size: 14px; /* Adjust font size as needed */
+        position: absolute;
+        top: -25px; /* Adjust positioning as needed */
+        left: 10px;
+        z-index: 1; /* Ensure it stays above other content */
+        }
+
+        div > div, div > span {
+        margin-bottom: 5px;
+        }
+
+        .btn-info {
+        margin-top: 5px;
+        }
+
+                
     </style>
 </head>
 <body>
@@ -145,6 +179,8 @@
                         <span>{{i.parent_message.message}}</span>
                     </div>
                 {% endif %}
+
+                
                 
                 <div>{{ i.message }} </div>
                 
@@ -175,6 +211,7 @@
             </div>
             {% else %}
             <div class="receiver_msg" id="{{i.id}}">
+                <div class="senderNameBlock">{{i.sender_name}}</div>
                 <div>{{ i.message }} </div>
 
                 <span>
@@ -496,7 +533,7 @@
                         let messagesData=data.page_messages;
                         messagesData.forEach(message => {
                             let className=message.sender==senderId?'sender_msg':'receiver_msg';
-                            prependMessageDiv(message.message, message.sent_time,message.id,className,message.is_read);
+                            prependMessageDiv(message.message, message.sent_time,message.id,className,message.is_read,message.sender_name);
                         });
                     }
                     else{
@@ -524,16 +561,25 @@
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             }
         
-            function prependMessageDiv(messageText, isoDate,id,className,isRead) {
+            function prependMessageDiv(messageText, isoDate,id,className,isRead,senderName) {
                 var divSenderMsg = document.createElement('div');
                 divSenderMsg.classList.add(className);
                 divSenderMsg.id=id;
+                
                 var divMessage = document.createElement('div');
                 divMessage.textContent = messageText;
                 var spanDate = document.createElement('span');
                 spanDate.textContent = formatDate(isoDate);
                 var spanID = document.createElement('span');
                 spanID.textContent = "ID is"+id;
+
+                if(className=='receiver_msg'){
+                    var divSenderName=document.createElement('div');
+                    divSenderName.classList.add('senderNameBlock')
+                    divSenderName.textContent=senderName;
+                    divSenderMsg.appendChild(divSenderName);
+                }
+                
                 divSenderMsg.appendChild(divMessage);
                 divSenderMsg.appendChild(spanDate);
                 divSenderMsg.appendChild(spanID);
