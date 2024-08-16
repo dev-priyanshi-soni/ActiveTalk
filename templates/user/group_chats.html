@@ -141,7 +141,7 @@
         <h3 id="">Created on: 
 
             <script>
-                console.log("group is",'{{group}}');
+               // console.log("group is",'{{group}}');
                 // Convert ISO 8601 date string to a formatted date
                 function formatDate(isoDate) {
                     const date = new Date(isoDate);
@@ -168,7 +168,7 @@
         <div id="snackbar"></div>
         <div class="chat-messages">
             <script>
-                console.log("group_chat_messages",'{{group_chat_messages}}')
+                //console.log("group_chat_messages",'{{group_chat_messages}}')
             </script>
             {% for i in group_chat_messages %}
             {% if i.sender == request.user.id %}
@@ -257,6 +257,13 @@
     
     <script>
         var page=1;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const element = document.querySelector('.chat-messages');
+            element.scrollTop = element.scrollHeight;
+        });
+
+     
 
         function scrollAndHighlightMsg(messageIdToHighlight){
             const targetDiv = document.getElementById(messageIdToHighlight);
