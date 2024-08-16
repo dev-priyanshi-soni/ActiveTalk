@@ -6,6 +6,13 @@ from auth_app.models import User
 from channels.db import database_sync_to_async
 from asgiref.sync import  sync_to_async
 from django.db.models import Q
+
+# from channels.layers import get_channel_layer
+# from asgiref.sync import async_to_sync
+# import redis
+# redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
+# channel_layer = get_channel_layer()
+
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         try:
@@ -258,6 +265,8 @@ class GroupConsumer(AsyncWebsocketConsumer):
             )
 
             await self.accept()
+            # key = f"{self.channel_name}__{self.scope['user'].id}"
+            # redis_client.set(key,self.scope['user'].id)
         except Exception as ex:
             import traceback
             print(traceback.format_exc())
@@ -271,6 +280,8 @@ class GroupConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 self.channel_name
             )
+            # key = f"{self.channel_name}__{self.scope['user'].id}"
+            # redis_client.delete(key)
         except Exception as ex:
             import traceback
             print(traceback.format_exc())
@@ -287,18 +298,20 @@ class GroupConsumer(AsyncWebsocketConsumer):
                 sender_user=self.scope['user'].id
                 sender_name=self.scope['user'].full_name
                 msg_id=await self.create_message_record(self.group_id,sender_user,message_sent_time,reply_to_message_id,message)
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        'type':'broadcast_sender_msg_in_group',
-                        'message':message,
-                        'message_id':msg_id,
-                        'reply_to_message_id':reply_to_message_id,
-                        'sender_id':sender_user,
-                        'sender_name':sender_name
+                if msg_id:
+                    await self.create_message_deliveries_for_group(msg_id)
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            'type':'broadcast_sender_msg_in_group',
+                            'message':message,
+                            'message_id':msg_id,
+                            'reply_to_message_id':reply_to_message_id,
+                            'sender_id':sender_user,
+                            'sender_name':sender_name
 
-                    }
-                )
+                        }
+                    )
         except Exception as ex:
             import traceback
             print(traceback.format_exc())
@@ -324,6 +337,27 @@ class GroupConsumer(AsyncWebsocketConsumer):
             await self.close()
 
     @database_sync_to_async
+    def create_message_deliveries_for_group(self, message_id):
+        try:
+            users = GroupMemberships.objects.filter(group__id=self.group_id)
+            now = timezone.now()
+            deliveries = []
+            for user in users:
+                deliveries.append(
+                    GroupMessageRead(
+                        group_message_id=message_id,
+                        user_id=user.user.id,
+                        delivered_time=now if user.user.is_online else None,
+                        read_at=None
+                    )
+                )
+            # Bulk create all delivery records
+            GroupMessageRead.objects.bulk_create(deliveries)
+            return True
+        except Exception as ex:
+            return False
+
+    @database_sync_to_async
     def create_message_record(self,group_id,sender_user,message_sent_time,reply_to_message_id,message):
         message = GroupMessages.objects.create(
             group_id=group_id,
@@ -338,12 +372,4 @@ class GroupConsumer(AsyncWebsocketConsumer):
     def get_group_members(group_id):
         group_members = GroupMemberships.objects.filter(group_id=group_id).select_related('user')
         return group_members
-
-    @database_sync_to_async
-    def create_group_msg_record(group_members,message):#this function is used to create record of a mesage being read by a user
-        GroupMessageRead.objects.bulk_create([
-            GroupMessageRead(user=member.user, group_message=message) 
-            for member in group_members
-        ])
-
 

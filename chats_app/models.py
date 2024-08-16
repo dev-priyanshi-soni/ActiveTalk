@@ -37,6 +37,7 @@ class GroupMessageRead(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True,null=True)
     group_message = models.ForeignKey(GroupMessages, on_delete=models.CASCADE, db_index=True,null=True)
     read_at = models.DateTimeField(null=True,blank=True)
+    delivered_time = models.DateTimeField(null=True, blank=True)
 
 class Notification(models.Model):
 
