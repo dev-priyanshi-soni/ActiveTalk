@@ -140,7 +140,7 @@ def group_chat(request,group_id):
                 group=group_data,
                 id__lt=messages_unread_list[0].id
             ).order_by('-id')[:remaining_needed]
-            unread_msg_start_id = list(messages_unread_list)[0]
+            unread_msg_start_id = list(messages_unread_list)[0].id
             messages_combined = list(messages_unread_list) + list(messages_previous)
         else:
             unread_msg_start_id = messages_unread_list[0].id
