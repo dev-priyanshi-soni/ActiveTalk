@@ -325,7 +325,7 @@ class GroupConsumer(AsyncWebsocketConsumer):
             if message and not type_of_event:#it means user sent a new message and we need to broadcast it into the group
                 msg_id=await self.create_message_record(self.group_id,sender_user,current_time,reply_to_message_id,message)
                 if msg_id:
-                    await self.create_message_deliveries_for_group(msg_id)
+                    await self.create_message_deliveries_for_group(msg_id,sender_user)
                     await self.channel_layer.group_send(
                         self.room_group_name,
                         {
@@ -407,9 +407,9 @@ class GroupConsumer(AsyncWebsocketConsumer):
             await self.close()
 
     @database_sync_to_async
-    def create_message_deliveries_for_group(self, message_id):
+    def create_message_deliveries_for_group(self, message_id,user_id):
         try:
-            users = GroupMemberships.objects.filter(group__id=self.group_id)
+            users = GroupMemberships.objects.filter(group__id=self.group_id).exclude(user=user_id)
             now = timezone.now()
             deliveries = []
             for user in users:

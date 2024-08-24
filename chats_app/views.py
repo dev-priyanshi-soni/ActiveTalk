@@ -150,7 +150,7 @@ def group_chat(request,group_id):
     else:
         group_chat_messages = GroupMessages.objects.filter(
             group=group_data
-        ).order_by('-id')
+        ).order_by('id')
         paginator = Paginator(group_chat_messages, 10)
        
     page_number = request.GET.get('page', 1)  
