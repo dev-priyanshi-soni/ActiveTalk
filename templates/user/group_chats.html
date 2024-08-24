@@ -167,82 +167,149 @@
 
         <div id="snackbar"></div>
         <div class="chat-messages">
-            <script>
-                //console.log("group_chat_messages",'{{group_chat_messages}}')
-            </script>
+
             {% for i in group_chat_messages %}
-            {% if i.sender == request.user.id %}
-            <div class="sender_msg" id="{{i.id}}">
-                {% if i.parent_message %}
-                    <div style="background-color:#f2d9e6;border-radius:15px;height:70px;" id="{{i.parent_message.id}}" onclick="scrollAndHighlightMsg('{{i.parent_message.id}}')">
-                        <div style="background-color:#b3cccc;border-radius:15px;">{{i.parent_message.sender_full_name}}</div>
-                        <span>{{i.parent_message.message}}</span>
+                {% if i.id == unread_msg_start_id %}
+                    <p id="unreadMessagesCount">Unread Messages {{unread_msg_count}}</p>
+                {% endif %}
+                {% if i.sender == request.user.id %}
+                    <div class="sender_msg" id="{{i.id}}">
+                        {% if i.parent_message %}
+                            <div style="background-color:#f2d9e6;border-radius:15px;height:70px;" id="{{i.parent_message.id}}" onclick="scrollAndHighlightMsg('{{i.parent_message.id}}')">
+                                <div style="background-color:#b3cccc;border-radius:15px;">{{i.parent_message.sender_full_name}}</div>
+                                <span>{{i.parent_message.message}}</span>
+                            </div>
+                        {% endif %}
+
+                        
+                        
+                        <div>{{ i.message }} </div>
+                        
+                        <span>
+                            <script>
+                                // Convert ISO 8601 date string to a formatted date
+                                function formatDate(isoDate) {
+                                    const date = new Date(isoDate);
+                                    const hours = String(date.getHours()).padStart(2, '0');
+                                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                                    const day = String(date.getDate()).padStart(2, '0');
+                                    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+                                    const year = date.getFullYear();
+                                    return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+                                }
+                
+                                document.write(formatDate('{{ i.sent_time }}'));
+                            </script>
+                        </span>
+                        <span>{{i.id}}</span>
+                        <div><button class="btn btn-info" onclick="addDivtoChatBox('{{i.id}}')">Reply</button></div>
+                      
+                        <button onclick="openModal('{{i.id}}')">Info</button>
+                        {% if i.is_read_by_all %}
+                            <div id="status-{{i.id}}"><i class="fa-solid fa-circle-check"></i></div>
+                        {% else %}
+                            <div id="status-{{i.id}}"><i class="fa-regular fa-circle-check"></i></div>
+                        {% endif %}
+
+                    </div>
+                {% else %}
+                    <div class="receiver_msg" id="{{i.id}}">
+                        <div class="senderNameBlock">{{i.sender_name}}</div>
+                        <div>{{ i.message }} </div>
+
+                        <span>
+                            <script>
+                                // Convert ISO 8601 date string to a formatted date
+                                function formatDate(isoDate) {
+                                    const date = new Date(isoDate);
+                                    const hours = String(date.getHours()).padStart(2, '0');
+                                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                                    const day = String(date.getDate()).padStart(2, '0');
+                                    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+                                    const year = date.getFullYear();
+                                    return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+                                }
+                
+                                document.write(formatDate('{{ i.sent_time }}'));
+                            </script>
+                        </span>
+                        <span>{{i.id}}</span>
+                        <div><button onclick="addDivtoChatBox('{{i.id}}')" class="btn btn-info" >Reply</button></div>
+                        {% if i.is_read_by_all %}
+                            <div id="status-{{i.id}}"><i class="fa-solid fa-circle-check"></i></div>
+                        {% else %}
+                            <div id="status-{{i.id}}"><i class="fa-regular fa-circle-check"></i></div>
+                        {% endif %}
                     </div>
                 {% endif %}
-
-                
-                
-                <div>{{ i.message }} </div>
-                
-                <span>
-                    <script>
-                        // Convert ISO 8601 date string to a formatted date
-                        function formatDate(isoDate) {
-                            const date = new Date(isoDate);
-                            const hours = String(date.getHours()).padStart(2, '0');
-                            const minutes = String(date.getMinutes()).padStart(2, '0');
-                            const seconds = String(date.getSeconds()).padStart(2, '0');
-                            const day = String(date.getDate()).padStart(2, '0');
-                            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
-                            const year = date.getFullYear();
-                            return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
-                        }
-        
-                        document.write(formatDate('{{ i.sent_time }}'));
-                    </script>
-                </span>
-                <span>{{i.id}}</span>
-                <div><button class="btn btn-info" onclick="addDivtoChatBox('{{i.id}}')">Reply</button></div>
-                {% if i.is_read %}
-                    <div id="status-{{i.id}}"><i class="fa-solid fa-circle-check"></i></div>
-                {% else %}
-                    <div id="status-{{i.id}}"><i class="fa-regular fa-circle-check"></i></div>
-                {% endif %}
-            </div>
-            {% else %}
-            <div class="receiver_msg" id="{{i.id}}">
-                <div class="senderNameBlock">{{i.sender_name}}</div>
-                <div>{{ i.message }} </div>
-
-                <span>
-                    <script>
-                        // Convert ISO 8601 date string to a formatted date
-                        function formatDate(isoDate) {
-                            const date = new Date(isoDate);
-                            const hours = String(date.getHours()).padStart(2, '0');
-                            const minutes = String(date.getMinutes()).padStart(2, '0');
-                            const seconds = String(date.getSeconds()).padStart(2, '0');
-                            const day = String(date.getDate()).padStart(2, '0');
-                            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
-                            const year = date.getFullYear();
-                            return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
-                        }
-        
-                        document.write(formatDate('{{ i.sent_time }}'));
-                    </script>
-                </span>
-                <span>{{i.id}}</span>
-                <div><button onclick="addDivtoChatBox('{{i.id}}')" class="btn btn-info" >Reply</button></div>
-                {% if i.is_read %}
-                    <div id="status-{{i.id}}"><i class="fa-solid fa-circle-check"></i></div>
-                {% else %}
-                    <div id="status-{{i.id}}"><i class="fa-regular fa-circle-check"></i></div>
-                {% endif %}
-            </div>
-            {% endif %}
             {% endfor %}
 
+
+
+
         </div>
+
+        <div class="modal fade" id="infoModal" tabindex="-1" data-messageId="" aria-labelledby="infoModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="infoModalLabel">Info</h5>
+                        <button type="button" class="btn-close" onclick="closeModal()"></button>
+                    </div>
+                    <div class="modal-body">
+                       <div id="deliveredToMembers">
+                        <table id="deliveredToMembersTable" style="display:none;">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Delivered At</th>
+                                    <th>Read At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data rows will be added here -->
+                            </tbody>
+                        </table>
+                       </div>
+                       <br/>
+                       <div id="readBymembers">
+                        <table id="readBymembersTable" style="display:none;">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Delivered At</th>
+                                    <th>Read At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data rows will be added here -->
+                            </tbody>
+                        </table>
+                       </div>
+                       <br/>
+                       <div id="notDeliveredToMembers">
+                        <table id="notDeliveredToMembersTable" style="display:none;">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Delivered At</th>
+                                    <th>Read At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data rows will be added here -->
+                            </tbody>
+                        </table>
+                       </div>
+                       
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
         <div class="chat-input">
             <input type="text" id="chat-message-input" autocomplete="off" placeholder="Type your message...">
             <button id="send-button">Send</button>
@@ -254,17 +321,93 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
+
+
+
     
     <script>
-        var page=1;
+        var upScrollingPageCount=1;
+        var bottomScrollingPageCount=0;
 
         document.addEventListener('DOMContentLoaded', function() {
             const element = document.querySelector('.chat-messages');
-            element.scrollTop = element.scrollHeight;
+            const unreadMessagesElement = document.getElementById('unreadMessagesCount');
+            if(unreadMessagesElement){
+                const elementRect = element.getBoundingClientRect();
+                const unreadMessagesRect = unreadMessagesElement.getBoundingClientRect();
+                const scrollPosition = unreadMessagesRect.top - elementRect.top + element.scrollTop;
+                element.scrollTop = scrollPosition;
+            }
+            else{
+                element.scrollTop = element.scrollHeight;
+            }
         });
 
-     
+        function closeModal(){
+            $("#infoModal").modal('hide');
+            $("#infoModal").attr('data-messageId',"");
+        }
 
+        function openModal(messageId){
+            // this will fetch the messages read or not read statuses and display in modal.
+            let groupId='{{group.id}}';
+            console.log("isnide openModal",messageId);
+            fetch(`/get_read_statuses/${groupId}/${messageId}/`, {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.Error=="NA"){
+                    let statusOfMessages=data.Status;
+                   
+                    let readBymembersDiv=document.querySelector('#readBymembersTable tbody');
+                    let deliveredToMembersDiv=document.querySelector('#deliveredToMembersTable tbody');
+                    let notDeliveredToMembersDiv=document.querySelector('#notDeliveredToMembersTable tbody');
+                    //we need to clear previous data populated in table.
+                    ['readBymembersTable', 'deliveredToMembersTable', 'notDeliveredToMembersTable'].forEach(id => document.querySelector(`#${id} tbody`).innerHTML = '');
+
+                    statusOfMessages.forEach((item)=>{
+                        if (item.read_at && item.delivered_at){
+                            let tr=document.createElement('tr');
+                            tr.setAttribute('id',item.member_id);
+                            tr.innerHTML=`<td>${item.member_full_name}</td><td>${item.delivered_at}</td><td>${item.read_at}</td>`;
+                            readBymembersDiv.appendChild(tr);
+                            $("#readBymembersTable").show();
+                        }
+                        else if(item.delivered_at && !item.read){
+                            let tr=document.createElement('tr');
+                            tr.setAttribute('id',item.member_id);
+                            tr.innerHTML=`<td>${item.member_full_name}</td><td>${item.delivered_at}</td><td>Not Read</td>`;
+                            deliveredToMembersDiv.appendChild(tr);
+                            $("#deliveredToMembersTable").show();
+                        }
+                        else{
+                            let tr=document.createElement('tr');
+                            tr.setAttribute('id',item.member_id);
+                            tr.innerHTML=`<td>${item.member_full_name}</td><td>Not Delivered</td><td>Not Read</td>`;
+                            notDeliveredToMembersDiv.appendChild(tr);
+                            $("#notDeliveredToMembersTable").show();
+                        }
+                    })
+
+                    $("#infoModal").modal('show');
+                    $("#infoModal").attr('data-messageId',messageId);
+                    hideTables();
+                    
+                }
+                else{
+                    showSnackbar("No more messages to show",'F');
+                    $("#infoModal").attr('data-messageId',"");
+                }
+            })
+            .catch(error => {
+                $("#infoModal").attr('data-messageId',"");
+                console.error('Error fetching previous messages:', error)
+            });
+
+        }  
+        
+     
         function scrollAndHighlightMsg(messageIdToHighlight){
             const targetDiv = document.getElementById(messageIdToHighlight);
             if (targetDiv) {
@@ -390,13 +533,202 @@
 
         }
     </script>
+
+
+<script>
+    let isFetching = false;
+    console.log('UPDATED 55555555555!!!! &*(*&^%^>>>>>>>>>>>>)');
+
+        let lastFetchTime = 0;
+        const fetchThrottle = 1000; // Minimum time between fetches in milliseconds
     
-    <script>
+        function onScrollToBottom() {
+            const chatMessagesElement = document.querySelector('.chat-messages');
+            const scrollHeight = chatMessagesElement.scrollHeight;
+            const scrollTop = chatMessagesElement.scrollTop;
+            const clientHeight = chatMessagesElement.clientHeight;
+    
+            //console.log("Scroll check -> scrollHeight:", scrollHeight, "scrollTop:", scrollTop, "clientHeight:", clientHeight);
+    
+            if (scrollHeight - scrollTop <= clientHeight + 1) {
+                // Check throttle
+                const now = Date.now();
+                if (now - lastFetchTime < fetchThrottle) {
+                    return; // Prevent fetching too frequently
+                }
+    
+                if (!isFetching) {
+                    isFetching = true;
+                    lastFetchTime = now;
+
+                    const bottomElementId = document.querySelector('.chat-messages div.sender_msg:last-of-type, .chat-messages div.receiver_msg:last-of-type').getAttribute('id');
+                    fetchMoreUnreadMessages(bottomElementId);
+                }
+            }
+        }
+
+        function fetchMoreUnreadMessages(bottomElementId) {
+            sendForMarkMessagesRead(bottomElementId)
+            console.log("fetchMoreUnreadMessages called with bottomElementId:", bottomElementId);
+    
+            let senderId = {{request.user.id}};
+            let groupId = '{{group.id}}';
+            bottomScrollingPageCount += 1;
+    
+            fetch(`/get_next_group_chats_messages/${groupId}/${bottomScrollingPageCount}/${bottomElementId}`, {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Data received:", data);
+                if (data.Error === "NA") {
+                    let messagesData = data.page_messages;
+                    if (messagesData.length === 0) {
+                        bottomScrollingPageCount -= 1;
+                    }
+                    messagesData.forEach(message => {
+                        let className = message.sender === senderId ? 'sender_msg' : 'receiver_msg';
+                        console.log("Prepending message with ID:", message.id);
+                        appendChatMessageToBottom(message.message, message.sent_time, message.id, className, message.is_read, message.sender_name);
+                    });
+                } else {
+                    bottomScrollingPageCount -= 1;
+                    console.log("No more messages to show.");
+                    showSnackbar("No more messages to show", 'F');
+                }
+                isFetching = false;
+            })
+            .catch(error => {
+                console.error('Error fetching previous messages:', error);
+                bottomScrollingPageCount -= 1;
+                isFetching = false;
+            });
+        }
+
+
+        function appendChatMessageToBottom(messageText, isoDate,id,className,isRead,senderName) {
+            var divSenderMsg = document.createElement('div');
+            divSenderMsg.classList.add(className);
+            divSenderMsg.id=id;
+            
+            var divMessage = document.createElement('div');
+            divMessage.textContent = messageText;
+            var spanDate = document.createElement('span');
+            spanDate.textContent = formatDate(isoDate);
+            var spanID = document.createElement('span');
+            spanID.textContent = "ID is"+id;
+
+            if(className=='receiver_msg'){
+                var divSenderName=document.createElement('div');
+                divSenderName.classList.add('senderNameBlock')
+                divSenderName.textContent=senderName;
+                divSenderMsg.appendChild(divSenderName);
+            }
+            
+            divSenderMsg.appendChild(divMessage);
+            divSenderMsg.appendChild(spanDate);
+            divSenderMsg.appendChild(spanID);
+            var divOfReply = document.createElement('div');
+            divOfReply.innerHTML = `<button onclick="addDivtoChatBox('${id}')" class="btn btn-info" >Reply</button>`;
+            var divOfReadStatus = document.createElement('div');
+            divOfReadStatus.innerHTML = isRead ? `<i class="fa-solid fa-circle-check"></i>` : `<i class="fa-regular fa-circle-check">`;
+            divSenderMsg.appendChild(divOfReply);
+            divSenderMsg.appendChild(divOfReadStatus);
+            chatMessagesContainer.appendChild(divSenderMsg);
+        }
+    
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessagesElement = document.querySelector('.chat-messages');
+            const unreadMessagesElement = document.getElementById('unreadMessagesCount');
+            const unreadMessagesCount = unreadMessagesElement ? parseInt(unreadMessagesElement.textContent.split("Unread Messages")[1], 10) : 0;
+    
+            console.log("Unread messages count:", unreadMessagesCount);
+    
+            if (unreadMessagesCount > 10) {
+                chatMessagesElement.addEventListener('scroll', onScrollToBottom);
+    
+                if (unreadMessagesElement) {
+                    const elementRect = chatMessagesElement.getBoundingClientRect();
+                    const unreadMessagesRect = unreadMessagesElement.getBoundingClientRect();
+                    const scrollPosition = unreadMessagesRect.top - elementRect.top + chatMessagesElement.scrollTop;
+                    chatMessagesElement.scrollTop = scrollPosition;
+                } else {
+                    chatMessagesElement.scrollTop = chatMessagesElement.scrollHeight;
+                }
+            }
+        });
+    
+</script>
+
+
+     <script>
+        var chatSocket;
+        function sendForMarkMessagesRead(bottomElementId){
+            // Get all elements with class 'sender_msg' inside the 'chat-messages' container
+            const chatMessages = document.querySelector('.chat-messages');
+            const senderMessages = [];
+            let messageIds=[];
+            const unreadMessagesElement = document.getElementById('unreadMessagesCount');
+            if(unreadMessagesElement){
+                const unreadMessagesCount = unreadMessagesElement ? parseInt(unreadMessagesElement.textContent.split("Unread Messages")[1], 10) : 0;
+                
+                let nextSibling = unreadMessagesElement.nextElementSibling;
+
+                while (nextSibling) {
+                    if (nextSibling.classList.contains('receiver_msg')) {
+                        senderMessages.push(nextSibling);
+                    }
+                    nextSibling = nextSibling.nextElementSibling;
+                }
+
+                // Now 'senderMessages' array contains all the 'sender_msg' elements after 'unreadMessagesCount'
+                console.log(senderMessages);
+                if (senderMessages){
+                    senderMessages.forEach((i)=>{
+
+                        messageIds.push(i.id)
+                    })
+
+                    if(messageIds.length>0){
+                        chatSocket.send(JSON.stringify({
+                            'messageIds': messageIds,
+                            'type_of_event':'markMessageRead'
+                        }));
+                    }
+
+                    if(messageIds.length==unreadMessagesCount){
+                        $("#unreadMessagesCount").remove();
+                    }
+
+                }
+
+            }
+          
+        }
+
+        function hideTables() {
+            let isEmpty;
+            
+            isEmpty = document.querySelector('#deliveredToMembersTable tbody').children.length === 0;
+            if (isEmpty) {
+                $("#deliveredToMembersTable").css('display', 'none');
+            }
+            
+            isEmpty = document.querySelector('#readBymembersTable tbody').children.length === 0;
+            if (isEmpty) {
+                $("#readBymembersTable").css('display', 'none');
+            }
+            
+            isEmpty = document.querySelector('#notDeliveredToMembersTable tbody').children.length === 0;
+            if (isEmpty) {
+                $("#notDeliveredToMembersTable").css('display', 'none');
+            }
+        }
+        
         $(document).ready(function(){
             var senderId = {{ request.user.id }};  
             var groupId={{group.id}} 
-
-            var chatSocket = new WebSocket(
+            chatSocket = new WebSocket(
                 'ws://' + window.location.host + '/group_chat/' + groupId + '/'
             );
 
@@ -443,6 +775,55 @@
                     })
 
                 }
+
+                else if(data.event_name=='message_read_by_user_in_group'){
+                    const isOpen = $('#infoModal').hasClass('show');
+                   
+                    if(isOpen){
+                        let messageId= JSON.parse(data.message_id.replace(/'/g, '"'));
+                        console.log("messageId",messageId,typeof(messageId));
+                        let read_at=data.read_at;
+                        let messageIdOfModal=$("#infoModal").attr("data-messageId");
+                        console.log("messageIdOfModal",messageIdOfModal);
+                        messageId.forEach((item)=>{
+
+                            if(item==messageIdOfModal){
+
+
+                                const row = document.querySelector(`#notDeliveredToMembersTable tbody tr[id='${data.sender_id}']`);
+                                console.log("row",row);
+                                let deliveredDate;
+                                const deliveredRow=document.querySelector(`#deliveredToMembersTable tbody tr[id='${data.sender_id}']`);
+                                console.log("deliveredRow",deliveredRow);
+                                if(row){
+                                    deliveredDate = row ? row.querySelector('td:nth-child(2)').textContent : 'Not Delivered';
+                                    row.remove();
+                                }
+                                if(deliveredRow){
+                                    deliveredDate = deliveredRow ? deliveredRow.querySelector('td:nth-child(2)').textContent : 'Not Delivered';
+                                    deliveredRow.remove();
+                                }
+
+                                const row2 = document.querySelector(`#readBymembers tbody tr[id='${data.sender_id}']`);
+                                if(!row2){
+                                    let tableId='readBymembers';
+                                    let tr=document.createElement('tr');
+                                    tr.setAttribute('id',item);
+                                    tr.innerHTML=`<td>${data.sender_name}</td><td>${deliveredDate}</td><td>${data.read_at}</td>`;
+                                    document.querySelector(`#${tableId} tbody`).appendChild(tr);
+                                    $("#readBymembersTable").css('display','block');
+                                    hideTables();
+                            
+
+                                }
+
+                            }
+                        
+                        })
+                        $("#readBymembers").show();
+
+                    }
+                }
                 else{
                     console.log("data",data);
                 }
@@ -468,7 +849,7 @@
                     console.log("messages",messages);
                     
                     if (messages.length > 0) {
-                        debugger;
+                        //debugger;
                         messages.forEach(function(div) {
                             if(div.id){
                                 replyToMessageId = div.id;  
@@ -523,27 +904,33 @@
         var chatMessagesContainer = document.querySelector('.chat-messages');
             chatMessagesContainer.addEventListener('scroll', function() {
                 if (chatMessagesContainer.scrollTop === 0) {
-                    loadPreviousMessages();
+                    const topElementId = document.querySelector('.chat-messages div.sender_msg, .chat-messages div.receiver_msg')?.getAttribute('id');
+                    console.log("topElementId",topElementId);
+                    loadPreviousMessages(topElementId);
                 }
             });
 
-            function loadPreviousMessages() {
+            function loadPreviousMessages(lastMessageId) {
                 let senderId={{request.user.id}};
                 let groupId='{{group.id}}';
-                page+=1;
-                fetch(`/get_previous_group_chats_messages/${groupId}/${page}`, {
+                upScrollingPageCount+=1;
+                fetch(`/get_previous_group_chats_messages/${groupId}/${upScrollingPageCount}/${lastMessageId}`, {
                     method: 'GET'
                 })
                 .then(response => response.json())
                 .then(data => {
                     if(data.Error=="NA"){
                         let messagesData=data.page_messages;
+                        if(messagesData.length==0){
+                            upScrollingPageCount-=1;
+                        }
                         messagesData.forEach(message => {
                             let className=message.sender==senderId?'sender_msg':'receiver_msg';
                             prependMessageDiv(message.message, message.sent_time,message.id,className,message.is_read,message.sender_name);
                         });
                     }
                     else{
+                        upScrollingPageCount-=1;
                         showSnackbar("No more messages to show",'F');
                     }
                 })
@@ -598,6 +985,8 @@
                 divSenderMsg.appendChild(divOfReadStatus);
                 chatMessagesContainer.insertBefore(divSenderMsg, chatMessagesContainer.firstChild);
             }
+
+          
 
     </script>
 

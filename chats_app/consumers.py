@@ -30,6 +30,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.broadcast_messages_read(self.sender_id,self.receiver_id)
             await self.accept()
             await self.send_receiver_user_status(self.receiver_id)
+            await self.create_active_conversation_record(self.sender_id,self.receiver_id)
         except Exception as ex:
             import traceback
             print(traceback.format_exc())
@@ -43,7 +44,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 self.channel_name
             )
-
+            await self.delete_active_conversation_record(self.sender_id,self.receiver_id)
             # Mark sender as offline
             # await self.broadcast_user_status(self.sender_id,False,None)
         except Exception as ex:
@@ -220,9 +221,28 @@ class ChatConsumer(AsyncWebsocketConsumer):
             print(traceback.format_exc())
             return False
         
-
-
-
+    @database_sync_to_async
+    def create_active_conversation_record(self,sender_id,receiver_id):
+        try:
+            active_conversation_record=ActiveConversation.objects.get_or_create(chat_opened_by_id=sender_id,chat_with_id=receiver_id)
+            return True,"Success"
+        except Exception as ex:
+            import traceback
+            traceback.print_exc()
+            return False,str(ex)
+        
+    @database_sync_to_async
+    def delete_active_conversation_record(self,sender_id,receiver_id):
+        try:
+            active_conversation_record=ActiveConversation.objects.filter(chat_opened_by_id=sender_id,chat_with_id=receiver_id)
+            if active_conversation_record.exists():
+                active_conversation_record.delete()
+            return True,"Success"
+        except Exception as ex:
+            import traceback
+            traceback.print_exc()
+            return False,str(ex)
+            
     @database_sync_to_async
     def get_message_record_by_id(self, message_id):
         chat_record=ChatModel.objects.filter(id=message_id)
@@ -289,15 +309,21 @@ class GroupConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         try:
-            message_sent_time=timezone.now()
+            current_time=timezone.now()
+            sender_user=self.scope['user'].id
+            sender_name=self.scope['user'].full_name
             print('inside receive')
             text_data_json = json.loads(text_data)
             message = text_data_json.get('message')
+            id_of_msg_read_by_user=text_data_json.get('messageIds')#its a list of message ids
+            type_of_event=text_data_json.get('type_of_event')
             reply_to_message_id=text_data_json.get("reply_to_message_id")
-            if message:#it means user sent a new message and we need to broadcast it into the group
-                sender_user=self.scope['user'].id
-                sender_name=self.scope['user'].full_name
-                msg_id=await self.create_message_record(self.group_id,sender_user,message_sent_time,reply_to_message_id,message)
+            if type_of_event:
+                if type_of_event=='markMessageRead':
+                    await self.mark_message_as_read(id_of_msg_read_by_user,current_time)
+                    await self.broadcast_message_read_in_group(id_of_msg_read_by_user,current_time,sender_user,sender_name)
+            if message and not type_of_event:#it means user sent a new message and we need to broadcast it into the group
+                msg_id=await self.create_message_record(self.group_id,sender_user,current_time,reply_to_message_id,message)
                 if msg_id:
                     await self.create_message_deliveries_for_group(msg_id)
                     await self.channel_layer.group_send(
@@ -312,6 +338,50 @@ class GroupConsumer(AsyncWebsocketConsumer):
 
                         }
                     )
+        except Exception as ex:
+            import traceback
+            print(traceback.format_exc())
+            await self.close()
+    
+    @database_sync_to_async
+    def mark_message_as_read(self,message_id,read_time):#message_id is a list of message ids
+        try:
+            message_read=GroupMessageRead.objects.filter(group_message__id__in=message_id,user=self.scope['user'])
+            message_read.update(read_at=read_time)
+        except Exception as ex:
+            import traceback
+            print(traceback.format_exc())
+
+    async def broadcast_message_read_in_group(self,message_id,read_at,sender_user,sender_name):
+        try:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type':'broadcast_message_read_by_user_in_group',
+                    'message_id':message_id,
+                    'read_at':str(read_at),
+                    'sender_id':sender_user,
+                    'sender_name':sender_name
+                }
+            )
+        except Exception as ex:
+            import traceback
+            print(traceback.format_exc())
+            await self.close()
+
+    async def broadcast_message_read_by_user_in_group(self,event):
+        try:
+            message_id=event['message_id'] if 'message_id' in event else None
+            read_at=event['read_at'] if 'read_at' in event else None
+            sender_id=event['sender_id'] if 'sender_id' in event else None
+            sender_name=event['sender_name'] if 'sender_name' in event else None
+            await self.send(text_data=json.dumps({
+                'message_id':str(message_id),
+                'read_at':str(read_at),
+                'sender_name':sender_name,
+                'sender_id':sender_id,
+                'event_name':'message_read_by_user_in_group'
+            }))
         except Exception as ex:
             import traceback
             print(traceback.format_exc())
@@ -356,7 +426,7 @@ class GroupConsumer(AsyncWebsocketConsumer):
             return True
         except Exception as ex:
             return False
-
+        
     @database_sync_to_async
     def create_message_record(self,group_id,sender_user,message_sent_time,reply_to_message_id,message):
         message = GroupMessages.objects.create(
@@ -372,4 +442,3 @@ class GroupConsumer(AsyncWebsocketConsumer):
     def get_group_members(group_id):
         group_members = GroupMemberships.objects.filter(group_id=group_id).select_related('user')
         return group_members
-

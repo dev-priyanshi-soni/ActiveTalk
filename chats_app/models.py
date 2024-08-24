@@ -11,7 +11,13 @@ class ChatModel(models.Model):
     read_time = models.DateTimeField(null=True, blank=True)#this points the time when receiver read the message
     sent_time = models.DateTimeField(auto_now_add=True)#this points the time when sender sent the message
     file = models.FileField(upload_to='chat_files/', null=True, blank=True)
-    parent_message = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.SET_NULL)  # New field for replies
+    parent_message = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.SET_NULL) 
+
+class ActiveConversation(models.Model):
+    #here records will be created when user opens a chat with another user so that we can
+    # broadcast status of other user in real time to the user who has opened chat.
+    chat_opened_by = models.ForeignKey(User, related_name='chat_opened_by', on_delete=models.SET_NULL, null=True)
+    chat_with = models.ForeignKey(User, related_name='chat_with', on_delete=models.SET_NULL, null=True)
 
 class Group(models.Model):   
     name=models.CharField(max_length=400,null=True,blank=True)
@@ -31,7 +37,7 @@ class GroupMessages(models.Model):
     message=models.CharField(max_length=300,null=True,blank=True)
     sent_time=models.DateTimeField(null=False)
     file = models.FileField(upload_to='group_chat_files/', null=True, blank=True) 
-    parent_message = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.SET_NULL)  # New field for replies
+    parent_message = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.SET_NULL)  
 
 class GroupMessageRead(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True,null=True)

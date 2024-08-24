@@ -9,5 +9,7 @@ urlpatterns = [
     path('join_group/<int:group_id>/',views.join_group,name='join_group'),
     path('create_group/',views.create_group,name='create_group'),
     path('group_chat/<int:group_id>/',views.group_chat,name='group_chat'),
-    path('get_previous_group_chats_messages/<int:group_id>/<int:page>/',views.get_previous_group_chats_messages,name='get_previous_group_chats_messages')
+    path('get_previous_group_chats_messages/<int:group_id>/<int:page>/<int:last_message_id>/',views.get_previous_group_chats_messages,name='get_previous_group_chats_messages'),
+    path('get_next_group_chats_messages/<int:group_id>/<int:page>/<int:curr_msg_id>/',views.get_next_group_chats_messages,name='get_next_group_chats_messages'),
+    path('get_read_statuses/<int:group_id>/<int:message_id>/',views.get_read_statuses,name='get_read_statuses'),
 ]

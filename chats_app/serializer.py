@@ -23,6 +23,7 @@ class ChatModelSerializer(serializers.ModelSerializer):
 class GroupChatsModelSerializer(serializers.ModelSerializer):
     parent_message = serializers.SerializerMethodField()
     sender_name=serializers.SerializerMethodField()
+    is_read_by_all=serializers.SerializerMethodField()
     class Meta:
         model = GroupMessages
         fields = '__all__'
@@ -42,7 +43,25 @@ class GroupChatsModelSerializer(serializers.ModelSerializer):
         if obj.sender:
             return obj.sender.full_name
         
+    def get_is_read_by_all(self,obj):
+        is_read_by_all = GroupMemberships.objects.filter(group=obj.group.id).exclude(user=self.context['user'].id).count() == GroupMessageRead.objects.filter(group_message=obj.id, read_at__isnull=False).values('user').distinct().count()
+        return is_read_by_all
+        
 class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = '__all__'
+
+
+class GroupMembershipsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GroupMemberships
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['member_id']=instance.user.id if instance.user else None
+        representation['member_full_name']=instance.user.full_name if instance.user else None
+        representation['read_at']=instance.read_at if instance.read_at else None
+        representation['delivered_at']=instance.delivered_at if instance.delivered_at else None
+        return representation
