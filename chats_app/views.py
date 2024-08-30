@@ -1,10 +1,11 @@
 from django.shortcuts import render,get_object_or_404,redirect
+from django.urls import reverse
 from django.http import JsonResponse
 from auth_app.models import User
 from chats_app.models import *
 from django.db.models import *
 from django.core.paginator import Paginator
-from .serializer import ChatModelSerializer,GroupChatsModelSerializer,GroupSerializer,GroupMembershipsSerializer
+from .serializer import ChatModelSerializer,GroupChatsModelSerializer,GroupSerializer,GroupMembershipsSerializer,GroupMembershipsDataSerializer
 import json
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
@@ -114,8 +115,15 @@ def create_group(request):
     except Exception as ex:
         return JsonResponse({'Error':'Some Error Occurred','Status':str(ex)})
 
+
 @login_required
 def group_chat(request,group_id):
+    # request.session['group_name'] = "New Group Name"  # Example context data
+
+    # # Perform the redirect to the create_group view
+    # return HttpResponseRedirect(reverse('create_group'))
+
+    # redirect(reverse('create_group', kwargs={ 'bar': 'jjjj' }))
     group_data=Group.objects.filter(pk=group_id)
     if not group_data.exists():
         return redirect("home")
@@ -130,7 +138,9 @@ def group_chat(request,group_id):
         group_admin_name=group_admin.user.full_name
     unread_msg_count=0
     unread_msg_start_id=None
-    messages_unread_by_user=GroupMessageRead.objects.filter(user_id=request.user,delivered_time__isnull=False,read_at=None).order_by('id')
+    messages_unread_by_user=GroupMessageRead.objects.filter(group_message__group__id=group_id,user_id=request.user,delivered_time__isnull=False,read_at=None).order_by('id')
+    remaining_needed=0
+    need_to_reverse=False
     if messages_unread_by_user.exists():
         unread_msg_count = messages_unread_by_user.count()
         messages_unread_list=[x.group_message for x in messages_unread_by_user][:10]
@@ -139,7 +149,7 @@ def group_chat(request,group_id):
             messages_previous = GroupMessages.objects.filter(
                 group=group_data,
                 id__lt=messages_unread_list[0].id
-            ).order_by('-id')[:remaining_needed]
+            ).order_by('-id')[0:remaining_needed]
             unread_msg_start_id = list(messages_unread_list)[0].id
             messages_combined = list(messages_unread_list) + list(messages_previous)
         else:
@@ -148,14 +158,16 @@ def group_chat(request,group_id):
         messages_combined = sorted(messages_combined, key=lambda x: x.id)
         paginator = Paginator(messages_combined, 10)
     else:
+        need_to_reverse=True
         group_chat_messages = GroupMessages.objects.filter(
             group=group_data
-        ).order_by('id')
+        ).order_by('-id')
         paginator = Paginator(group_chat_messages, 10)
        
     page_number = request.GET.get('page', 1)  
     page_messages = paginator.get_page(page_number)  
-    #page_messages=list(page_messages)[::-1]
+    if need_to_reverse:
+        page_messages=list(page_messages)[::-1]
     serialized_data = GroupChatsModelSerializer(page_messages, many=True,context={'user':request.user})
     return render(request,'user/group_chats.html',{'unread_msg_count':unread_msg_count,'unread_msg_start_id':unread_msg_start_id,'group_chat_messages':serialized_data.data,'group':serialized_group_data,'group_admin':group_admin_id,'group_admin_name':group_admin_name})
 
@@ -169,11 +181,11 @@ def get_previous_group_chats_messages(request,group_id,page,last_message_id):
             group_data=group_data.last()
             group_chat_messages=GroupMessages.objects.filter(group=group_data,id__lt=last_message_id).order_by('-id')  
             paginator = Paginator(group_chat_messages, 10)  
-            page_number = page
+            page_number = 1
             if page>paginator.num_pages:
                 return JsonResponse({'page_messages': list(),'Error':'NA','Status':'Success'})
             page_messages = paginator.get_page(page_number)  
-            page_messages=list(page_messages)[::-1]
+            #page_messages=list(page_messages)[::-1]
             serialized_data = GroupChatsModelSerializer(page_messages, many=True,context={'user':request.user})
             return JsonResponse({'page_messages': serialized_data.data,'Error':'NA','Status':'Success'})
         return JsonResponse({'page_messages': list(),'Error':'Auth Error','Status':'Auth Error'})
@@ -227,5 +239,42 @@ def get_read_statuses(request,group_id,message_id):
 
             return JsonResponse({'Error':'NA','Status':serialized_data.data})
         return JsonResponse({'Error':'Method Error','Status':'Method Error'})
+    except Exception as ex:
+        return JsonResponse({'Error':'Some Error Occurred','Status':str(ex)})
+    
+@login_required
+def get_group_members(request,group_id):
+    try:
+        if request.method=='GET':
+            group_data=Group.objects.filter(pk=group_id)
+            if not group_data.exists():
+                return JsonResponse({'Error':"Group not found",'Status':"Group not found"})
+            group_data=group_data.last()
+            group_members=GroupMemberships.objects.filter(group=group_data)
+            serialized_data = GroupMembershipsDataSerializer(group_members, many=True) 
+            return JsonResponse({'Error':'NA','Status':serialized_data.data})
+        return JsonResponse({'Error':'Method Error','Status':'Method Error  '})
+    except Exception as ex:
+        return JsonResponse({'Error':'Some Error Occurred','Status':str(ex)})
+
+@login_required
+def remove_group_member(request,group_id,group_member_id):
+    try:
+        if request.method=='DELETE':
+            if not group_id or not group_member_id:
+                return JsonResponse({'Error':'Missing Fields','Status':'Missing Fields'})
+            group_data=Group.objects.filter(pk=group_id)
+            if not group_data.exists():
+                return JsonResponse({'Error':"Group not found",'Status':"Group not found"})
+            group_data=group_data.last()
+            user_is_group_admin=GroupMemberships.objects.filter(group=group_data,user__id=request.user.id,is_admin=True)
+            if not user_is_group_admin:
+                return JsonResponse({'Error':'UnAuthorized','Status':'Only Admin can remove participants'})
+            group_member_to_delete=GroupMemberships.objects.filter(group=group_data,user__id=group_member_id)
+            if group_member_to_delete.exists():
+                group_member_to_delete.delete()
+                return JsonResponse({'Error':'NA','Status':"Success"})
+            return JsonResponse({'Error':"Group Member not found",'Status':"Group Member not found"})
+        return JsonResponse({'Error':'Method Error','Status':'Method Error  '})
     except Exception as ex:
         return JsonResponse({'Error':'Some Error Occurred','Status':str(ex)})

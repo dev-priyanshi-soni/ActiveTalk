@@ -44,7 +44,7 @@ class GroupChatsModelSerializer(serializers.ModelSerializer):
             return obj.sender.full_name
         
     def get_is_read_by_all(self,obj):
-        is_read_by_all = GroupMemberships.objects.filter(group=obj.group.id).exclude(user=self.context['user'].id).count() == GroupMessageRead.objects.filter(group_message=obj.id, read_at__isnull=False).values('user').distinct().count()
+        is_read_by_all = GroupMemberships.objects.filter(group=obj.group.id,joined_at__lt=obj.sent_time).exclude(user=self.context['user'].id).count() == GroupMessageRead.objects.filter(group_message=obj.id, read_at__isnull=False).values('user').distinct().count()
         return is_read_by_all
         
 class GroupSerializer(serializers.ModelSerializer):
@@ -65,3 +65,14 @@ class GroupMembershipsSerializer(serializers.ModelSerializer):
         representation['read_at']=instance.read_at if instance.read_at else None
         representation['delivered_at']=instance.delivered_at if instance.delivered_at else None
         return representation
+    
+
+class GroupMembershipsDataSerializer(serializers.ModelSerializer):
+    group_member_name=serializers.SerializerMethodField()
+    class Meta:
+        model = GroupMemberships
+        fields = '__all__'
+
+    def get_group_member_name(self,obj):
+        return obj.user.full_name if obj.user else None
+
