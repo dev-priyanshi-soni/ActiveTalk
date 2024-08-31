@@ -16,6 +16,19 @@
     <!-- Include necessary CSS styles here -->
     <style>
         /* Container for the chat section */
+        #unreadMessagesCount, #downScrollButton {
+            background-color: #f44336; /* Red background for visibility */
+            color: white; /* White text for contrast */
+            padding: 5px 10px; /* Padding for spacing */
+            border-radius: 5px; /* Rounded corners */
+            font-weight: bold; /* Bold text */
+            display: inline-block; /* Keep it inline with other elements */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Add a subtle shadow */
+            position: relative; /* Relative positioning */
+            z-index: 1; /* Ensure it's on top of overlapping elements */
+        }
+       
+
         .chat-container {
             display: flex;
             flex-direction: column;
@@ -38,15 +51,16 @@
             margin-bottom: 10px; /* Space between messages and input */
         }
 
-        /* Styles for individual message */
-        .sender_msg {
+        /* Styles for individual message 
+        ./*sender_msg {
             background-color: #d1e7dd;
             padding: 10px;
             border-radius: 5px;
-            margin-bottom: 5px; /* Space between messages */
-            align-self: flex-end; /* Align to the right */
-            max-width: 70%; /* Limit the width of the message */
+            margin-bottom: 5px;
+            align-self: flex-end; 
+            max-width: 70%; 
         }
+        */
 
         .reciver_msg {
             background-color: #f8d7da;
@@ -90,6 +104,14 @@
             width: 50%;
             float: left;
         }
+        .unread_message_block{
+            background-color: #f1f0f0;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 10px;
+            width: 50%;
+            float: right;
+        }
         .sender_msg{
             background-color: #f1f0f0;
             padding: 10px;
@@ -109,18 +131,19 @@
         }
 
         .senderNameBlock {
-        font-weight: bold;
-        color: #007bff; /* Blue color for the sender's name */
-        background-color: #e9f5ff; /* Light blue background for highlighting */
-        border: 1px solid #007bff; /* Border color matching the text */
-        border-radius: 5px;
-        padding: 5px 10px;
-        margin-bottom: 10px; /* Space below the sender's name */
-        font-size: 14px; /* Adjust font size as needed */
-        position: absolute;
-        top: -25px; /* Adjust positioning as needed */
-        left: 10px;
-        z-index: 1; /* Ensure it stays above other content */
+            cursor:pointer;
+            font-weight: bold;
+            color: #007bff; /* Blue color for the sender's name */
+            background-color: #e9f5ff; /* Light blue background for highlighting */
+            border: 1px solid #007bff; /* Border color matching the text */
+            border-radius: 5px;
+            padding: 5px 10px;
+            margin-bottom: 10px; /* Space below the sender's name */
+            font-size: 14px; /* Adjust font size as needed */
+            position: absolute;
+            top: -25px; /* Adjust positioning as needed */
+            left: 10px;
+            z-index: 1; /* Ensure it stays above other content */
         }
 
         div > div, div > span {
@@ -158,6 +181,8 @@
             </script>
         </h3>
 
+        <button onclick="openParticipantsModal()">View Participants</button>
+
         {% if request.user.id == group_admin %}
             Admin: You
             <button onclick="copyLink('{{group.id}}')">Copy group Link and invite friends</button>
@@ -166,11 +191,14 @@
         {% endif %}
 
         <div id="snackbar"></div>
+        <div id="downScrollButton" style="display:none;">
+            <span id="countOfMsg"></span>
+        </div>
         <div class="chat-messages">
 
             {% for i in group_chat_messages %}
                 {% if i.id == unread_msg_start_id %}
-                    <p id="unreadMessagesCount">Unread Messages {{unread_msg_count}}</p>
+                    <div id="unreadMessagesCount" class="unread_message_block">Unread Messages {{unread_msg_count}}</div>
                 {% endif %}
                 {% if i.sender == request.user.id %}
                     <div class="sender_msg" id="{{i.id}}">
@@ -215,7 +243,7 @@
                     </div>
                 {% else %}
                     <div class="receiver_msg" id="{{i.id}}">
-                        <div class="senderNameBlock">{{i.sender_name}}</div>
+                        <div class="senderNameBlock" onclick="window.location.href='/chats_page/{{i.sender}}/'">{{i.sender_name}}</div>
                         <div>{{ i.message }} </div>
 
                         <span>
@@ -237,19 +265,41 @@
                         </span>
                         <span>{{i.id}}</span>
                         <div><button onclick="addDivtoChatBox('{{i.id}}')" class="btn btn-info" >Reply</button></div>
-                        {% if i.is_read_by_all %}
-                            <div id="status-{{i.id}}"><i class="fa-solid fa-circle-check"></i></div>
-                        {% else %}
-                            <div id="status-{{i.id}}"><i class="fa-regular fa-circle-check"></i></div>
-                        {% endif %}
+                      
                     </div>
                 {% endif %}
             {% endfor %}
 
-
-
-
         </div>
+
+        <div class="modal fade" id="participantsModal" tabindex="-1" data-messageId="" aria-labelledby="participantsModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="participantsModalLabel">Info</h5>
+                        <button type="button" class="btn-close" onclick="closeParticipantsModal()"></button>
+                    </div>
+                    <div class="modal-body">
+                            <table style="display:none;">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Chat</th>
+                                        <th>Action</th>
+                                        <th>Joined At</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="participantsBody">
+                                    <!-- Data rows will be added here -->
+                                </tbody>
+                            </table>
+
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
         <div class="modal fade" id="infoModal" tabindex="-1" data-messageId="" aria-labelledby="infoModalLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -326,8 +376,138 @@
 
     
     <script>
-        var upScrollingPageCount=1;
+        var upScrollingPageCount=0;
         var bottomScrollingPageCount=0;
+        var groupMembersData=[];
+
+
+        function closeParticipantsModal(){
+            $("#participantsModal").modal('hide');
+        }
+
+ 
+
+        function openParticipantsModal(){
+            
+                getGroupMembers();
+            
+           
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString(); 
+        }
+
+        function deleteFromParticipantsTable(group_id, group_member_id){
+            const row = document.querySelector(`#participantsBody tr[id="${group_member_id}"].participantsBlock`);
+            console.log("row is",row);
+            if(row){
+                row.remove();
+            }
+        }
+
+        function removeGroupMemberAPICall(group_id, group_member_id) {
+             $.ajax({
+                url: `/remove_group_member/${group_id}/${group_member_id}/`,
+                type: 'DELETE',
+                headers: {
+                    'X-CSRFToken': '{{csrf_token}}'
+                },
+                success: function(result) {
+                  if(result.Error=="NA"){
+                    toastr.error("Participant Removed Successfully", "Success", {
+                        "positionClass": "toast-top-right"
+                    });
+                    deleteFromParticipantsTable(group_id, group_member_id);
+                  }
+                  else{
+                    toastr.error(result.Error, "Error", {
+                        "positionClass": "toast-top-right"
+                    });
+                    return;
+
+                  }
+                },
+                error: function(xhr, status, error) {
+                    // Handle error
+                    console.error('Error removing member:', status, error);
+                }
+            }); 
+        }
+
+        function deleteParticipant(id){
+            //id is group member id to be removed
+            removeGroupMemberAPICall('{{group.id}}',id);
+        }
+
+        function populateParticipantsTable(groupMemData){
+            const tbody = document.getElementById('participantsBody');
+            groupMemData.forEach(function(participant) {
+                const row = document.createElement('tr');
+                row.setAttribute('id',participant.user);
+                row.classList.add('participantsBlock');
+
+                const nameCell = document.createElement('td');
+                nameCell.textContent = `${participant.group_member_name}${participant.user=='{{request.user.id}}' ? ' (You)' : ''}`; 
+                row.appendChild(nameCell);
+
+                const messageCell = document.createElement('td');
+                const messageButton=document.createElement('button');
+                messageButton.textContent='Chat'
+                messageButton.onclick=function(){
+                    window.location.href=`/chats_page/${participant.user}`;
+                }
+                messageCell.appendChild(messageButton);
+                row.appendChild(messageCell);
+
+                
+                const removeCell = document.createElement('td');
+                const removeButton=document.createElement('button');
+                removeButton.textContent='Remove Participant'
+                removeButton.disabled=true;
+                if('{{request.user.id}}'=='{{group_admin}}' && participant.user!='{{request.user.id}}'){
+                    removeButton.disabled=false;
+                }
+                removeButton.onclick=function(){
+                    deleteParticipant(`${participant.user}`);
+                }
+                removeCell.appendChild(removeButton);
+                row.appendChild(removeCell);
+
+                const joinedAtCell = document.createElement('td');
+                joinedAtCell.textContent = formatDate(participant.joined_at);
+                row.appendChild(joinedAtCell);
+
+                
+
+                tbody.appendChild(row);
+            });
+
+            document.querySelector('table').style.display = 'table';
+        }
+
+        function getGroupMembers(){
+            let groupId='{{group.id}}';
+            fetch(`/get_group_members/${groupId}/`, {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.Error=="NA"){
+                    let members=data.Status;
+                    groupMembersData.push(...members);
+                     populateParticipantsTable(members);
+                     $("#participantsModal").modal('show');
+                }
+                else{
+                    console.log("Error in fetching group members");
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching group members:', error)
+            });
+        }
 
         document.addEventListener('DOMContentLoaded', function() {
             const element = document.querySelector('.chat-messages');
@@ -341,6 +521,7 @@
             else{
                 element.scrollTop = element.scrollHeight;
             }
+           
         });
 
         function closeModal(){
@@ -457,6 +638,39 @@
         function deleteChatMessage(){
             
         }
+
+        function showDownScrollButton() {
+            const downScrollButton = document.getElementById('downScrollButton');
+            const countOfMsg = document.getElementById('countOfMsg');
+            const unreadMessagesElement = document.getElementById('unreadMessagesCount');
+        
+            if (downScrollButton) {
+                downScrollButton.style.display = 'block'; 
+        
+                downScrollButton.firstChild.textContent = 'New Messages';
+        
+                const unreadMessagesCount = unreadMessagesElement ? parseInt(unreadMessagesElement.textContent.split("Unread Messages ")[1], 10) : 0;
+        
+                console.log("Unread messages count 676543:", unreadMessagesCount);
+        
+                $("#countOfMsg").text(unreadMessagesCount);
+
+                $("#downScrollButton").on('click', function() {
+                    const unreadMessagesElement = document.getElementById('unreadMessagesCount');
+                    var chatMessagesContainer = document.querySelector('.chat-messages');
+                 
+                    if (unreadMessagesElement && chatMessagesContainer) {
+                        unreadMessagesElement.scrollIntoView({
+                            behavior: 'smooth', 
+                            block: 'nearest',   
+                            inline: 'nearest'   
+                        });
+                    }
+                    $(this).hide(); 
+                    $("#countOfMsg").text(''); 
+                });
+            }
+        }
     
         function createMessageDiv(messageText, isoDate,className,replyToMessageId,replyToMessageVal,messageID,isRead,senderName) {
             
@@ -467,7 +681,12 @@
             divMessage.textContent = messageText;
             var spanDate = document.createElement('span');
             spanDate.textContent = formatDate(isoDate);
-            var replyButtonDiv=document.createElement('div');''
+            var infoButton = document.createElement('button');
+            infoButton.textContent = 'Info';
+            infoButton.onclick=function(){
+                openModal(messageID);
+            }
+            var replyButtonDiv=document.createElement('div');
             replyButtonDiv.innerHTML = `<button class="btn btn-info" onclick="addDivtoChatBox('${messageID}')">Reply</button><button style="del-btn" onclick="deleteChatMessage()">Delete</button>`;
     
             if(replyToMessageId){
@@ -494,14 +713,36 @@
             divSenderMsg.appendChild(divMessage);
             divSenderMsg.appendChild(spanDate);
             divSenderMsg.appendChild(replyButtonDiv);
+            divSenderMsg.appendChild(infoButton);
 
             var divOfReadStatus = document.createElement('div');
             divOfReadStatus.innerHTML = isRead ? `<i class="fa-solid fa-circle-check"></i>` : `<i class="fa-regular fa-circle-check">`;
             divSenderMsg.appendChild(divOfReadStatus);
          
             document.querySelector('.chat-messages').appendChild(divSenderMsg);
-            var chatMessagesContainer = document.querySelector('.chat-messages');
-            chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+           
+
+            const allDivs = document.querySelectorAll('.chat-messages div.receiver_msg, .chat-messages div.sender_msg');
+            let currentDivId = null;
+        
+            for (const div of allDivs) {
+                const rect = div.getBoundingClientRect();
+                if (rect.top >= 0 && rect.top < (window.innerHeight || document.documentElement.clientHeight)) {
+                    currentDivId = div.id;
+                    break; 
+                }
+            }
+
+            if(className=="receiver_msg"){
+                console.log("currentDivId is",currentDivId);
+                const distance = Math.abs(divSenderMsg.getBoundingClientRect().top - document.getElementById(currentDivId)?.getBoundingClientRect().top);
+                console.log("distance is",distance);
+                if(distance>=500){
+                    showDownScrollButton();
+
+                }
+            }
+            //disableScrollToBottom=false;
         }
     </script>
 
@@ -537,194 +778,28 @@
 
 <script>
     let isFetching = false;
-    console.log('UPDATED 55555555555!!!! &*(*&^%^>>>>>>>>>>>>)');
+    var disableScrollToBottom=false;
+    setTimeout(()=>{
+        console.log("INSIDE SETTIMEOUT");
+        const receiverMsgCount = document.querySelectorAll('#chat-messages #receiver_msg').length;
+        const senderMsgCount = document.querySelectorAll('#chat-messages #sender_msg').length;
+        const unreadMessagesElement = document.getElementById('unreadMessagesCount');
+        if( (receiverMsgCount+senderMsgCount<10) && unreadMessagesElement){
+            console.log("inside <10 condition CALLING THE ONSCROLLBOTTOM");
+            onScrollToBottom();
+
+
+
+        }
+
+
+    },8000)
 
         let lastFetchTime = 0;
-        const fetchThrottle = 1000; // Minimum time between fetches in milliseconds
-    
-        function onScrollToBottom() {
-            const chatMessagesElement = document.querySelector('.chat-messages');
-            const scrollHeight = chatMessagesElement.scrollHeight;
-            const scrollTop = chatMessagesElement.scrollTop;
-            const clientHeight = chatMessagesElement.clientHeight;
-    
-            //console.log("Scroll check -> scrollHeight:", scrollHeight, "scrollTop:", scrollTop, "clientHeight:", clientHeight);
-    
-            if (scrollHeight - scrollTop <= clientHeight + 1) {
-                // Check throttle
-                const now = Date.now();
-                if (now - lastFetchTime < fetchThrottle) {
-                    return; // Prevent fetching too frequently
-                }
-    
-                if (!isFetching) {
-                    isFetching = true;
-                    lastFetchTime = now;
-
-                    const bottomElementId = document.querySelector('.chat-messages div.sender_msg:last-of-type, .chat-messages div.receiver_msg:last-of-type').getAttribute('id');
-                    fetchMoreUnreadMessages(bottomElementId);
-                }
-            }
-        }
-
-        function fetchMoreUnreadMessages(bottomElementId) {
-            sendForMarkMessagesRead(bottomElementId)
-            console.log("fetchMoreUnreadMessages called with bottomElementId:", bottomElementId);
-    
-            let senderId = {{request.user.id}};
-            let groupId = '{{group.id}}';
-            bottomScrollingPageCount += 1;
-    
-            fetch(`/get_next_group_chats_messages/${groupId}/${bottomScrollingPageCount}/${bottomElementId}`, {
-                method: 'GET'
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log("Data received:", data);
-                if (data.Error === "NA") {
-                    let messagesData = data.page_messages;
-                    if (messagesData.length === 0) {
-                        bottomScrollingPageCount -= 1;
-                    }
-                    messagesData.forEach(message => {
-                        let className = message.sender === senderId ? 'sender_msg' : 'receiver_msg';
-                        console.log("Prepending message with ID:", message.id);
-                        appendChatMessageToBottom(message.message, message.sent_time, message.id, className, message.is_read, message.sender_name);
-                    });
-                } else {
-                    bottomScrollingPageCount -= 1;
-                    console.log("No more messages to show.");
-                    showSnackbar("No more messages to show", 'F');
-                }
-                isFetching = false;
-            })
-            .catch(error => {
-                console.error('Error fetching previous messages:', error);
-                bottomScrollingPageCount -= 1;
-                isFetching = false;
-            });
-        }
-
-
-        function appendChatMessageToBottom(messageText, isoDate,id,className,isRead,senderName) {
-            var divSenderMsg = document.createElement('div');
-            divSenderMsg.classList.add(className);
-            divSenderMsg.id=id;
-            
-            var divMessage = document.createElement('div');
-            divMessage.textContent = messageText;
-            var spanDate = document.createElement('span');
-            spanDate.textContent = formatDate(isoDate);
-            var spanID = document.createElement('span');
-            spanID.textContent = "ID is"+id;
-
-            if(className=='receiver_msg'){
-                var divSenderName=document.createElement('div');
-                divSenderName.classList.add('senderNameBlock')
-                divSenderName.textContent=senderName;
-                divSenderMsg.appendChild(divSenderName);
-            }
-            
-            divSenderMsg.appendChild(divMessage);
-            divSenderMsg.appendChild(spanDate);
-            divSenderMsg.appendChild(spanID);
-            var divOfReply = document.createElement('div');
-            divOfReply.innerHTML = `<button onclick="addDivtoChatBox('${id}')" class="btn btn-info" >Reply</button>`;
-            var divOfReadStatus = document.createElement('div');
-            divOfReadStatus.innerHTML = isRead ? `<i class="fa-solid fa-circle-check"></i>` : `<i class="fa-regular fa-circle-check">`;
-            divSenderMsg.appendChild(divOfReply);
-            divSenderMsg.appendChild(divOfReadStatus);
-            chatMessagesContainer.appendChild(divSenderMsg);
-        }
-    
-        document.addEventListener('DOMContentLoaded', function() {
-            const chatMessagesElement = document.querySelector('.chat-messages');
-            const unreadMessagesElement = document.getElementById('unreadMessagesCount');
-            const unreadMessagesCount = unreadMessagesElement ? parseInt(unreadMessagesElement.textContent.split("Unread Messages")[1], 10) : 0;
-    
-            console.log("Unread messages count:", unreadMessagesCount);
-    
-            if (unreadMessagesCount > 10) {
-                chatMessagesElement.addEventListener('scroll', onScrollToBottom);
-    
-                if (unreadMessagesElement) {
-                    const elementRect = chatMessagesElement.getBoundingClientRect();
-                    const unreadMessagesRect = unreadMessagesElement.getBoundingClientRect();
-                    const scrollPosition = unreadMessagesRect.top - elementRect.top + chatMessagesElement.scrollTop;
-                    chatMessagesElement.scrollTop = scrollPosition;
-                } else {
-                    chatMessagesElement.scrollTop = chatMessagesElement.scrollHeight;
-                }
-            }
-        });
-    
-</script>
-
-
-     <script>
         var chatSocket;
-        function sendForMarkMessagesRead(bottomElementId){
-            // Get all elements with class 'sender_msg' inside the 'chat-messages' container
-            const chatMessages = document.querySelector('.chat-messages');
-            const senderMessages = [];
-            let messageIds=[];
-            const unreadMessagesElement = document.getElementById('unreadMessagesCount');
-            if(unreadMessagesElement){
-                const unreadMessagesCount = unreadMessagesElement ? parseInt(unreadMessagesElement.textContent.split("Unread Messages")[1], 10) : 0;
-                
-                let nextSibling = unreadMessagesElement.nextElementSibling;
+        const fetchThrottle = 600; // Minimum time between fetches in milliseconds
 
-                while (nextSibling) {
-                    if (nextSibling.classList.contains('receiver_msg')) {
-                        senderMessages.push(nextSibling);
-                    }
-                    nextSibling = nextSibling.nextElementSibling;
-                }
-
-                // Now 'senderMessages' array contains all the 'sender_msg' elements after 'unreadMessagesCount'
-                console.log(senderMessages);
-                if (senderMessages){
-                    senderMessages.forEach((i)=>{
-
-                        messageIds.push(i.id)
-                    })
-
-                    if(messageIds.length>0){
-                        chatSocket.send(JSON.stringify({
-                            'messageIds': messageIds,
-                            'type_of_event':'markMessageRead'
-                        }));
-                    }
-
-                    if(messageIds.length==unreadMessagesCount){
-                        $("#unreadMessagesCount").remove();
-                    }
-
-                }
-
-            }
-          
-        }
-
-        function hideTables() {
-            let isEmpty;
-            
-            isEmpty = document.querySelector('#deliveredToMembersTable tbody').children.length === 0;
-            if (isEmpty) {
-                $("#deliveredToMembersTable").css('display', 'none');
-            }
-            
-            isEmpty = document.querySelector('#readBymembersTable tbody').children.length === 0;
-            if (isEmpty) {
-                $("#readBymembersTable").css('display', 'none');
-            }
-            
-            isEmpty = document.querySelector('#notDeliveredToMembersTable tbody').children.length === 0;
-            if (isEmpty) {
-                $("#notDeliveredToMembersTable").css('display', 'none');
-            }
-        }
-        
+           
         $(document).ready(function(){
             var senderId = {{ request.user.id }};  
             var groupId={{group.id}} 
@@ -740,10 +815,35 @@
                 var data = JSON.parse(e.data);
                 if(data.event_name=="chat_message"){
                     if(data.sender_id!={{request.user.id}}){
-                        createMessageDiv(data.message, new Date().toISOString(),'receiver_msg',data.reply_to_message_id,data.reply_to_message_val,data.id,data.is_read,data.sender_name);
+                        const unreadMessagesElement = document.getElementById('unreadMessagesCount');
+                        const unreadMessagesCount = unreadMessagesElement ? parseInt(unreadMessagesElement.textContent.split("Unread Messages")[1], 10) : 0;
+                
+                        console.log("Unread messages count:", unreadMessagesCount);
+                        //disableScrollToBottom=true;
+                        if(unreadMessagesElement){
+                            $("#unreadMessagesCount").text('Unread Messages '+ (unreadMessagesCount+1).toString());
+                        }
+                        else{
+                            const bottomElement = document.querySelector('.chat-messages div.sender_msg:last-of-type, .chat-messages div.receiver_msg:last-of-type');
+                            if (bottomElement) {
+                                const unreadMessagesDiv = document.createElement('div');
+                                unreadMessagesDiv.id = 'unreadMessagesCount';
+                                unreadMessagesDiv.className = 'unread_message_block';
+                                unreadMessagesDiv.textContent = 'Unread Messages 1';
+
+                                bottomElement.insertAdjacentElement('afterend', unreadMessagesDiv);
+                                //we need to add event listener after creating an element of unrreadMessagesDiv
+                                {% comment %} const chatMessagesElement = document.querySelector('.chat-messages');
+
+                                chatMessagesElement.addEventListener('scroll', onScrollToBottom); {% endcomment %}
+                            }                           
+                        }
+                
+
+                        createMessageDiv(data.message, new Date().toISOString(),'receiver_msg',data.reply_to_message_id,data.reply_to_message_val,data.message_id,data.is_read,data.sender_name);
                     }
                     else{
-                        createMessageDiv(data.message, new Date().toISOString(),'sender_msg',data.reply_to_message_id,data.reply_to_message_val,data.id,data.is_read,data.sender_name);
+                        createMessageDiv(data.message, new Date().toISOString(),'sender_msg',data.reply_to_message_id,data.reply_to_message_val,data.message_id,data.is_read,data.sender_name);
                     }
                 }
                 else if(data.event_name=="status"){
@@ -880,6 +980,201 @@
         });
 
 
+    
+        function onScrollToBottom() {
+            console.log("inside onScrollToBottom-------------");
+            {% comment %} if(disableScrollToBottom){
+                return;
+            } {% endcomment %}
+            if(chatSocket.readyState !== WebSocket.OPEN){
+                return;
+            }
+            const chatMessagesElement = document.querySelector('.chat-messages');
+            const scrollHeight = chatMessagesElement.scrollHeight;
+            const scrollTop = chatMessagesElement.scrollTop;
+            const clientHeight = chatMessagesElement.clientHeight;
+    
+            console.log("Scroll check -> scrollHeight:", scrollHeight, "scrollTop:", scrollTop, "clientHeight:", clientHeight);
+    
+            if (scrollHeight - scrollTop <= clientHeight + 1) {
+                // Check throttle
+                const now = Date.now();
+                if (now - lastFetchTime < fetchThrottle) {
+                    return; // Prevent fetching too frequently
+                }
+    
+                if (!isFetching) {
+                    isFetching = true;
+                    lastFetchTime = now;
+
+                    const bottomElementId = document.querySelector('.chat-messages div.sender_msg:last-of-type, .chat-messages div.receiver_msg:last-of-type').getAttribute('id');
+                    fetchMoreUnreadMessages(bottomElementId);
+                }
+            }
+        }
+
+        function fetchMoreUnreadMessages(bottomElementId) {
+            sendForMarkMessagesRead(bottomElementId)
+            console.log("fetchMoreUnreadMessages called with bottomElementId:", bottomElementId);
+    
+            let senderId = {{request.user.id}};
+            let groupId = '{{group.id}}';
+            bottomScrollingPageCount += 1;
+    
+            fetch(`/get_next_group_chats_messages/${groupId}/${bottomScrollingPageCount}/${bottomElementId}`, {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Data received:", data);
+                if (data.Error === "NA") {
+                    let messagesData = data.page_messages;
+                    if (messagesData.length === 0) {
+                        bottomScrollingPageCount -= 1;
+                    }
+                    messagesData.forEach(message => {
+                        let className = message.sender === senderId ? 'sender_msg' : 'receiver_msg';
+                        console.log("Prepending message with ID:", message.id);
+                        appendChatMessageToBottom(message.message, message.sent_time, message.id, className, message.is_read, message.sender_name,message.sender);
+                    });
+                } else {
+                    bottomScrollingPageCount -= 1;
+                    console.log("No more messages to show.");
+                    showSnackbar("No more messages to show", 'F');
+                }
+                isFetching = false;
+            })
+            .catch(error => {
+                console.error('Error fetching previous messages:', error);
+                bottomScrollingPageCount -= 1;
+                isFetching = false;
+            });
+        }
+
+
+        function appendChatMessageToBottom(messageText, isoDate,id,className,isRead,senderName,senderId) {
+            var divSenderMsg = document.createElement('div');
+            divSenderMsg.classList.add(className);
+            divSenderMsg.id=id;
+            
+            var divMessage = document.createElement('div');
+            divMessage.textContent = messageText;
+            var spanDate = document.createElement('span');
+            spanDate.textContent = formatDate(isoDate);
+            var spanID = document.createElement('span');
+            spanID.textContent = "ID is"+id;
+
+            if(className=='receiver_msg'){
+                var divSenderName=document.createElement('div');
+                divSenderName.classList.add('senderNameBlock')
+                divSenderName.textContent=senderName;
+                divSenderName.onclick=function(){
+                    window.location.href='/chats_page/'+senderId+'/';
+                }
+                divSenderMsg.appendChild(divSenderName);
+            }
+            
+            divSenderMsg.appendChild(divMessage);
+            divSenderMsg.appendChild(spanDate);
+            divSenderMsg.appendChild(spanID);
+            var divOfReply = document.createElement('div');
+            divOfReply.innerHTML = `<button onclick="addDivtoChatBox('${id}')" class="btn btn-info" >Reply</button>`;
+            var divOfReadStatus = document.createElement('div');
+            divOfReadStatus.innerHTML = isRead ? `<i class="fa-solid fa-circle-check"></i>` : `<i class="fa-regular fa-circle-check">`;
+            divSenderMsg.appendChild(divOfReply);
+            divSenderMsg.appendChild(divOfReadStatus);
+            chatMessagesContainer.appendChild(divSenderMsg);
+        }
+    
+        $(document).ready(function() {
+            const chatMessagesElement = document.querySelector('.chat-messages');
+            const unreadMessagesElement = document.getElementById('unreadMessagesCount');
+            const unreadMessagesCount = unreadMessagesElement ? parseInt(unreadMessagesElement.textContent.split("Unread Messages")[1], 10) : 0;
+            chatMessagesElement.addEventListener('scroll', onScrollToBottom);
+            //console.log("Unread messages count:", unreadMessagesCount);
+    
+            if (unreadMessagesCount) {
+                
+    
+                if (unreadMessagesElement) {
+                    
+                    const elementRect = chatMessagesElement.getBoundingClientRect();
+                    const unreadMessagesRect = unreadMessagesElement.getBoundingClientRect();
+                    const scrollPosition = unreadMessagesRect.top - elementRect.top + chatMessagesElement.scrollTop;
+                    chatMessagesElement.scrollTop = scrollPosition;
+                } else {
+                    
+                    chatMessagesElement.scrollTop = chatMessagesElement.scrollHeight;
+                }
+            }
+        });
+    
+</script>
+
+     <script>
+        
+        function sendForMarkMessagesRead(bottomElementId){
+            // Get all elements with class 'sender_msg' inside the 'chat-messages' container
+            const chatMessages = document.querySelector('.chat-messages');
+            const senderMessages = [];
+            let messageIds=[];
+            const unreadMessagesElement = document.getElementById('unreadMessagesCount');
+            if(unreadMessagesElement){
+                const unreadMessagesCount = unreadMessagesElement ? parseInt(unreadMessagesElement.textContent.split("Unread Messages")[1], 10) : 0;
+                
+                let nextSibling = unreadMessagesElement.nextElementSibling;
+
+                while (nextSibling) {
+                    if (nextSibling.classList.contains('receiver_msg')) {
+                        senderMessages.push(nextSibling);
+                    }
+                    nextSibling = nextSibling.nextElementSibling;
+                }
+
+                // Now 'senderMessages' array contains all the 'sender_msg' elements after 'unreadMessagesCount'
+                console.log(senderMessages);
+                if (senderMessages){
+                    senderMessages.forEach((i)=>{
+
+                        messageIds.push(i.id)
+                    })
+
+                    if(messageIds.length>0){
+                        chatSocket.send(JSON.stringify({
+                            'messageIds': messageIds,
+                            'type_of_event':'markMessageRead'
+                        }));
+                    }
+
+                    if(messageIds.length==unreadMessagesCount){
+                        $("#unreadMessagesCount").remove();
+                    }
+
+                }
+
+            }
+          
+        }
+
+        function hideTables() {
+            let isEmpty;
+            
+            isEmpty = document.querySelector('#deliveredToMembersTable tbody').children.length === 0;
+            if (isEmpty) {
+                $("#deliveredToMembersTable").css('display', 'none');
+            }
+            
+            isEmpty = document.querySelector('#readBymembersTable tbody').children.length === 0;
+            if (isEmpty) {
+                $("#readBymembersTable").css('display', 'none');
+            }
+            
+            isEmpty = document.querySelector('#notDeliveredToMembersTable tbody').children.length === 0;
+            if (isEmpty) {
+                $("#notDeliveredToMembersTable").css('display', 'none');
+            }
+        }
+     
 
     </script>
 
@@ -904,13 +1199,14 @@
         var chatMessagesContainer = document.querySelector('.chat-messages');
             chatMessagesContainer.addEventListener('scroll', function() {
                 if (chatMessagesContainer.scrollTop === 0) {
+                    const topElement=document.querySelector('.chat-messages div.sender_msg, .chat-messages div.receiver_msg');
                     const topElementId = document.querySelector('.chat-messages div.sender_msg, .chat-messages div.receiver_msg')?.getAttribute('id');
                     console.log("topElementId",topElementId);
-                    loadPreviousMessages(topElementId);
+                    loadPreviousMessages(topElementId,topElement);
                 }
             });
 
-            function loadPreviousMessages(lastMessageId) {
+            function loadPreviousMessages(lastMessageId,topElement) {
                 let senderId={{request.user.id}};
                 let groupId='{{group.id}}';
                 upScrollingPageCount+=1;
@@ -926,8 +1222,11 @@
                         }
                         messagesData.forEach(message => {
                             let className=message.sender==senderId?'sender_msg':'receiver_msg';
-                            prependMessageDiv(message.message, message.sent_time,message.id,className,message.is_read,message.sender_name);
+                            prependMessageDiv(message.message, message.sent_time,message.id,className,message.is_read,message.sender_name,topElement,message.sender);
                         });
+                        {% comment %} if (topElement) {
+                            topElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        } {% endcomment %}
                     }
                     else{
                         upScrollingPageCount-=1;
@@ -955,7 +1254,7 @@
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             }
         
-            function prependMessageDiv(messageText, isoDate,id,className,isRead,senderName) {
+            function prependMessageDiv(messageText, isoDate,id,className,isRead,senderName,topElement,senderId) {
                 var divSenderMsg = document.createElement('div');
                 divSenderMsg.classList.add(className);
                 divSenderMsg.id=id;
@@ -971,6 +1270,9 @@
                     var divSenderName=document.createElement('div');
                     divSenderName.classList.add('senderNameBlock')
                     divSenderName.textContent=senderName;
+                    divSenderName.onclick=function(){
+                        window.location.href='/chats_page/'+senderId+'/';
+                    }
                     divSenderMsg.appendChild(divSenderName);
                 }
                 
