@@ -9,6 +9,7 @@ from .serializer import ChatModelSerializer,GroupChatsModelSerializer,GroupSeria
 import json
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from .utilities import send_event_for_group_member_removal,check_user_group_membership
 
 def home(request):
     if request.user.is_authenticated:
@@ -118,12 +119,9 @@ def create_group(request):
 
 @login_required
 def group_chat(request,group_id):
-    # request.session['group_name'] = "New Group Name"  # Example context data
-
-    # # Perform the redirect to the create_group view
-    # return HttpResponseRedirect(reverse('create_group'))
-
-    # redirect(reverse('create_group', kwargs={ 'bar': 'jjjj' }))
+    is_group_member,error_message = check_user_group_membership(group_id,request.user.id)
+    if not is_group_member:
+        return render(request,'user/group_chats.html',{'error_message':error_message})
     group_data=Group.objects.filter(pk=group_id)
     if not group_data.exists():
         return redirect("home")
@@ -272,6 +270,8 @@ def remove_group_member(request,group_id,group_member_id):
                 return JsonResponse({'Error':'UnAuthorized','Status':'Only Admin can remove participants'})
             group_member_to_delete=GroupMemberships.objects.filter(group=group_data,user__id=group_member_id)
             if group_member_to_delete.exists():
+                group_member_to_delete=group_member_to_delete.last()
+                send_event_for_group_member_removal(group_id,group_member_to_delete,request.user)
                 group_member_to_delete.delete()
                 return JsonResponse({'Error':'NA','Status':"Success"})
             return JsonResponse({'Error':"Group Member not found",'Status':"Group Member not found"})

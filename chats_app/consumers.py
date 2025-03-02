@@ -277,6 +277,7 @@ class GroupConsumer(AsyncWebsocketConsumer):
         try:
             print('inside connect')
             self.group_id = self.scope['url_route']['kwargs']['group_id']
+            self.user_id = self.scope.get('user').id
             self.room_group_name = f'group_chat_{self.group_id}'
             self.channel_name = self.channel_name
             await self.channel_layer.group_add(
@@ -342,7 +343,7 @@ class GroupConsumer(AsyncWebsocketConsumer):
             import traceback
             print(traceback.format_exc())
             await self.close()
-    
+
     @database_sync_to_async
     def mark_message_as_read(self,message_id,read_time):#message_id is a list of message ids
         try:
@@ -400,6 +401,27 @@ class GroupConsumer(AsyncWebsocketConsumer):
                 'event_name':'chat_message',
                 'sender_id':sender_id
 
+            }))
+        except Exception as ex:
+            import traceback
+            print(traceback.format_exc())
+            await self.close()
+
+    async def send_participant_removal_msg_for_group(self,event):
+        try:
+            print('inside send_participant_removal_msg_for_group',event)
+            deleted_user_id=event.get("message",{}).get("deleted_user_id")
+            deleted_user_name=event.get("message",{}).get("deleted_user_name") 
+            deleted_by_user_id = event.get("message",{}).get('deleted_by_user_id')
+            deleted_by_user_name= event.get("message",{}).get("deleted_by_user_name")
+            message = event.get("message",{}).get('message')
+            await self.send(text_data=json.dumps({
+                'message':message,
+                'deleted_by_user_name':deleted_by_user_name,
+                'deleted_by_user_id':deleted_by_user_id,
+                'event_name':'participant_removal',
+                'deleted_user_id':deleted_user_id,
+                'deleted_user_name':deleted_user_name
             }))
         except Exception as ex:
             import traceback

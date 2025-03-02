@@ -164,8 +164,7 @@
         <h3 id="">Created on: 
 
             <script>
-               // console.log("group is",'{{group}}');
-                // Convert ISO 8601 date string to a formatted date
+              
                 function formatDate(isoDate) {
                     const date = new Date(isoDate);
                     const hours = String(date.getHours()).padStart(2, '0');
@@ -177,7 +176,10 @@
                     return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
                 }
 
-                document.write(formatDate('{{group.created_at}}'));
+                if('{{group.created_at}}'){
+                    document.write(formatDate('{{group.created_at}}'));
+                }
+                
             </script>
         </h3>
 
@@ -367,13 +369,21 @@
     </div>
 
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
 
 
-
+    <script>
+        if('{{error_message}}'){
+            toastr.error("{{error_message}}", "error", {
+                "positionClass": "toast-top-right"
+            });
+        }
+    </script>
     
     <script>
         var upScrollingPageCount=0;
@@ -408,7 +418,7 @@
         }
 
         function removeGroupMemberAPICall(group_id, group_member_id) {
-             $.ajax({
+            $.ajax({
                 url: `/remove_group_member/${group_id}/${group_member_id}/`,
                 type: 'DELETE',
                 headers: {
@@ -433,7 +443,9 @@
                     // Handle error
                     console.error('Error removing member:', status, error);
                 }
-            }); 
+            });
+            
+            
         }
 
         function deleteParticipant(id){
@@ -443,6 +455,7 @@
 
         function populateParticipantsTable(groupMemData){
             const tbody = document.getElementById('participantsBody');
+            tbody.innerHTML='';
             groupMemData.forEach(function(participant) {
                 const row = document.createElement('tr');
                 row.setAttribute('id',participant.user);
@@ -813,6 +826,7 @@
 
             chatSocket.onmessage = function(e) {
                 var data = JSON.parse(e.data);
+                console.log("data in onmessage is ",data);
                 if(data.event_name=="chat_message"){
                     if(data.sender_id!={{request.user.id}}){
                         const unreadMessagesElement = document.getElementById('unreadMessagesCount');
@@ -924,6 +938,14 @@
 
                     }
                 }
+                else if(data.event_name=='participant_removal'){
+                    if(data.deleted_user_id==senderId){
+                        replaceChatInputWithParticipantRemoval(data.message);
+                        if (socket && socket.readyState === WebSocket.OPEN) {
+                            socket.close();
+                        }
+                    }
+                }
                 else{
                     console.log("data",data);
                 }
@@ -931,7 +953,7 @@
             };
 
             chatSocket.onclose = function(e) {
-                console.log("WebSocket connection closed.");
+                console.log("WebSocket connection closed.",e);
             };
 
             chatSocket.onerror = function(e) {
@@ -979,7 +1001,16 @@
             });
         });
 
-
+        function replaceChatInputWithParticipantRemoval(message) {
+            const chatInput = document.querySelector('.chat-input');
+            const participantRemoval = document.createElement('div');
+            participantRemoval.className = 'participant_removal'; 
+            let currentUserName = '{{request.user.username}}';
+            participantRemoval.textContent = `You are no longer a participant.${message ? message : ''}`.replace(currentUserName," you!");
+            if (chatInput) {
+                chatInput.replaceWith(participantRemoval);
+            }
+        }
     
         function onScrollToBottom() {
             console.log("inside onScrollToBottom-------------");
