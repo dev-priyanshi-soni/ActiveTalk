@@ -1,4 +1,8 @@
+{% extends 'user/base.html' %}
+{% block content %}
+{% include 'user/header.html' %}
 {% load static %}
+{% load custom_filters %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,7 +19,7 @@
     <!-- Include necessary CSS styles here -->
     <style>
         /* Container for the chat section */
-        .chat-container {
+        {% comment %} .chat-container {
             display: flex;
             flex-direction: column;
             height: 100vh;
@@ -25,6 +29,18 @@
             border: 1px solid #ccc;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Enhanced shadow for depth */
+        } {% endcomment %}
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 110px);
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin-top: 90px;
         }
 
         /* Styles for chat messages display */
@@ -97,28 +113,128 @@
             width: 50%;
             float: right;
         }
+       
+        button {
+            background: linear-gradient(135deg, #6aafdf, #99caec); /* Green gradient */
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        button[disabled] {
+            opacity: 0.5;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, #35a0ea, #5e8eb0); /* Darker green on hover */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+            transform: scale(1.05);
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        .chatInputWrapperDiv .receiver_msg, .chatInputWrapperDiv .sender_msg{
+            float:unset;
+            width: 100%;
+            max-width: 100%;
+        }
+        .repliedToDiv {
+            background: linear-gradient(135deg, #d7e9ff, #b0d1ff); /* Smooth gradient */
+            border-radius: 10px;
+            overflow: hidden;
+            height: auto;
+            border-left: 5px solid #4a90e2; /* Accent border */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .repliedToDiv:hover {
+            background: linear-gradient(135deg, #b5d3ff, #8ebdff);
+            transform: scale(1.02);
+        }
+        
+        .repliedToMsgSender {
+            background: #4a90e2;
+            color: #ffffff;
+            padding: 8px 14px;
+            font-weight: bold;
+            border-radius: 6px 6px 0 0;
+            font-size: 14px;
+        }
+        
+        .repliedToMessage {
+            padding: 10px 14px;
+            color: #1f1f1f;
+            font-style: italic;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 0 0 6px 6px;
+            font-size: 14px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .chat_username{
+            font-size: 20px;
+        }
+        .user_status span{
+            height:10px;
+            width:10px;
+            border-radius:100%;
+            display:block;
+        }
+        .user_status span.online{
+            background-color:green;
+        }
+        .user_status span.offline{
+            background-color:red;
+        }
+        .deletedMessage {
+            font-style: italic;
+            color: #667781; /* Muted greyish-blue color like WhatsApp */
+            background-color: #f0f2f5; /* Light grey background */
+            border-radius: 8px;
+            padding: 5px 10px;
+            display: inline-block;
+            font-size: 14px;
+            text-align: center;
+            max-width: 70%;
+        }    
     </style>
 </head>
 <body>
-   
     <div class="chat-container">
-        <h1>Chat with {{ other_user.full_name }}</h1>
-        <h3 id="userStatus">Offline</h3>
+        <div class="pb-2 d-flex align-items-center gap-2">
+            <h3 id="userStatus" class="user_status mb-0">{% if other_user.is_online %}<span class="online"></span>{% else %}<span class="offline"></span>{% endif %}</h3>
+            <h1 class="chat_username mb-0">{{ other_user.full_name }}</h1>
+        </div>
         <div id="snackbar"></div>
         <div class="chat-messages">
             {% for i in page_messages %}
             {% if i.sender == request.user.id %}
             <div class="sender_msg" id="{{i.id}}">
                 {% if i.parent_message %}
-                    <div style="background-color:#f2d9e6;border-radius:15px;height:70px;" id="{{i.parent_message.id}}" onclick="scrollAndHighlightMsg('{{i.parent_message.id}}')">
+                    <div style="background-color:#f2d9e6;border-radius:5px; overflow:hidden;height:70px;" class="repliedToDiv" id="{{i.parent_message.id}}" onclick="scrollAndHighlightMsg('{{i.parent_message.id}}')">
+                        <div class="repliedToMsgSender" style="background-color:#dedede;color:#787878;padding: 4px 10px;">{{i.parent_message.sender_full_name}}</div>
+                        <span class="repliedToMessage" style="padding: 4px 10px;">{{i.parent_message.message|default:"No message available"}}</span>
+                    </div>
+                    {% comment %} <div style="background-color:#f2d9e6;border-radius:15px;height:70px;" id="{{i.parent_message.id}}" onclick="scrollAndHighlightMsg('{{i.parent_message.id}}')">
                         <div style="background-color:#b3cccc;border-radius:15px;">{{i.parent_message.sender_full_name}}</div>
                         <span>{{i.parent_message.message}}</span>
-                    </div>
+                    </div> {% endcomment %}
                 {% endif %}
                 
-                <div>{{ i.message }} </div>
+                <div class="message-content {% if i.is_deleted %}deletedMessage{% endif %}">{{ i.message }}</div>
                 
-                <span>
+                <span class="d-block">
                     <script>
                         // Convert ISO 8601 date string to a formatted date
                         function formatDate(isoDate) {
@@ -136,7 +252,7 @@
                     </script>
                 </span>
                 <span>{{i.id}}</span>
-                <div><button class="btn btn-info" onclick="addDivtoChatBox('{{i.id}}')">Reply</button></div>
+                <div classs="statusDiv"><button class="btn btn-info" onclick="addDivtoChatBox('{{i.id}}')">Reply</button></div>
                 {% if i.is_read %}
                     <div id="status-{{i.id}}"><i class="fa-solid fa-circle-check"></i></div>
                 {% else %}
@@ -144,6 +260,47 @@
                 {% endif %}
             </div>
             {% else %}
+            <div class="receiver_msg" id="{{i.id}}">
+                <div class="senderNameBlock" onclick="window.location.href='/chats_page/{{i.sender}}/'">{{i.sender_name}}</div>
+                <div>
+                    {% if i.parent_message %}
+                        <div style="background-color:#f2d9e6;border-radius:5px; overflow:hidden;height:70px;" class="repliedToDiv" id="{{i.parent_message.id}}" onclick="scrollAndHighlightMsg('{{i.parent_message.id}}')">
+                            <div class="repliedToMsgSender" style="background-color:#dedede;color:#787878;padding: 4px 10px;">
+                                {% if i.parent_message.sender_full_name == request.user.full_name %}
+                                    You
+                                {% else %}
+                                    {{ i.parent_message.sender_full_name }}
+                                {% endif %}
+                            </div>                                    
+                            <span class="repliedToMessage" style="padding: 4px 10px;">{{i.parent_message.message|default:"No message available"}}</span>
+                        </div>
+                    {% endif %}   
+                    <div class="message-content {% if i.is_deleted %}deletedMessage{% endif %}">{{ i.message }}</div>
+
+                </div>
+                <span class="d-block">
+                    <script>
+                        // Convert ISO 8601 date string to a formatted date
+                        function formatDate(isoDate) {
+                            const date = new Date(isoDate);
+                            const hours = String(date.getHours()).padStart(2, '0');
+                            const minutes = String(date.getMinutes()).padStart(2, '0');
+                            const seconds = String(date.getSeconds()).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+                            const year = date.getFullYear();
+                            return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+                        }
+        
+                        document.write(formatDate('{{ i.sent_time }}'));
+                    </script>
+                </span>
+                <span>{{i.id}}</span>
+                <div><button onclick="addDivtoChatBox('{{i.id}}')" class="btn btn-info" >Reply</button></div>
+              
+            </div>
+
+            {% comment %} ------------
             <div class="receiver_msg" id="{{i.id}}">
                 <div>{{ i.message }} </div>
 
@@ -165,21 +322,21 @@
                     </script>
                 </span>
                 <span>{{i.id}}</span>
-                <div><button onclick="addDivtoChatBox('{{i.id}}')" class="btn btn-info" >Reply</button></div>
-                {% if i.is_read %}
-                    <div id="status-{{i.id}}"><i class="fa-solid fa-circle-check"></i></div>
-                {% else %}
-                    <div id="status-{{i.id}}"><i class="fa-regular fa-circle-check"></i></div>
-                {% endif %}
-            </div>
+                <div class="statusDiv"><button onclick="addDivtoChatBox('{{i.id}}')" class="btn btn-info" >Reply</button></div>
+             
+            </div> {% endcomment %}
             {% endif %}
             {% endfor %}
 
         </div>
-        <div class="chat-input">
-            <input type="text" id="chat-message-input" autocomplete="off" placeholder="Type your message...">
-            <button id="send-button">Send</button>
+
+        <div class="chatInputWrapperDiv">
+            <div class="chat-input">
+                <input type="text" id="chat-message-input" autocomplete="off" placeholder="Type your message...">
+                <button id="send-button">Send</button>
+            </div>
         </div>
+       
     </div>
 
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
@@ -204,7 +361,7 @@
             }
         }
 
-        function addDivtoChatBox(id){
+        {% comment %} function addDivtoChatBox(id){
             var messageContent = document.getElementById(id);
             var chatMessageInput = document.getElementById('chat-message-input');
             if (messageContent && chatMessageInput) {
@@ -213,8 +370,41 @@
                 parent.insertBefore(messageContent, chatMessageInput);
             }
             
+        } {% endcomment %}
+        function addDivtoChatBox(id) {
+            console.log("id is", id);
+            // Remove existing sender_msg or receiver_msg div inside chatInputWrapperDiv
+            document.querySelectorAll('.chatInputWrapperDiv .sender_msg, .chatInputWrapperDiv .receiver_msg')
+             .forEach(div => div.remove());
+            let clone = document.getElementById(id).cloneNode(true);
+            document.querySelector('.chatInputWrapperDiv').insertBefore(clone, document.querySelector('.chat-input'));
+            clone.style.display = 'block';
+
         }
 
+        function deleteChatMessage(groupMessageIdToDelete) {
+            $.ajax({
+                url: `/delete_personal_chat_message/${groupMessageIdToDelete}/`, 
+                type: 'DELETE', 
+                headers: {
+                    'X-CSRFToken': '{{csrf_token}}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $(`#delete-chat-msg-${groupMessageIdToDelete}`).remove();
+                        showSnackbar("Message deleted successfully!",'S');
+                    } else {
+                        showSnackbar("Failed to delete message.",'F');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error deleting message:", error);
+                    showSnackbar("Something went wrong!",'F');
+                }
+            });
+        }
+        
+        
         function formatDate(isoDate) {
             const date = new Date(isoDate);
             const hours = String(date.getHours()).padStart(2, '0');
@@ -235,23 +425,27 @@
                 parent.insertBefore(originalDiv, targetDiv);
             }
         }
-        function deleteChatMessage(){
-            
-        }
+       
     
-        function createMessageDiv(messageText, isoDate,className,replyToMessageId,replyToMessageVal,messageID,isRead) {
+        function createMessageDiv(messageText, isoDate,className,replyToMessageId,replyToMessageVal,messageID,isRead,senderName) {
             
             var divSenderMsg = document.createElement('div');
             divSenderMsg.classList.add(className);
             divSenderMsg.id = messageID;
             var divMessage = document.createElement('div');
             divMessage.textContent = messageText;
+            divMessage.classList.add("message-content");
             var spanDate = document.createElement('span');
+            spanDate.classList.add("d-block");
             spanDate.textContent = formatDate(isoDate);
-            var replyButtonDiv=document.createElement('div');''
-            replyButtonDiv.innerHTML = `<button class="btn btn-info" onclick="addDivtoChatBox('${messageID}')">Reply</button><button style="del-btn" onclick="deleteChatMessage()">Delete</button>`;
-    
-            if(replyToMessageId){
+            var replyButtonDiv=document.createElement('div');
+            
+            replyButtonDiv.innerHTML = `
+                <button class="btn btn-info" onclick="addDivtoChatBox('${messageID}')">Reply</button>
+                ${className === "sender_msg" ? `<button id="delete-chat-msg-${messageID}" class="del-btn" onclick="deleteChatMessage('${messageID}')">Delete</button>` : ''}
+            `;
+            
+            {% comment %} if(replyToMessageId){
                 var replyToDiv = document.createElement('div');
                 replyToDiv.style.backgroundColor = '#f2d9e6';
                 replyToDiv.style.borderRadius = '15px';
@@ -271,12 +465,42 @@
                 replyToDiv.appendChild(span);
             
                 divSenderMsg.appendChild(replyToDiv);
+            } {% endcomment %}
+
+            if(replyToMessageId){
+                console.log("updatted replyToMessageId");
+                var replyToDiv = document.createElement('div');
+                replyToDiv.style.backgroundColor = '#f2d9e6';
+                replyToDiv.style.borderRadius = '5px';
+                replyToDiv.style.height = '70px';
+                replyToDiv.style.overflow = 'hidden';
+                replyToDiv.id = replyToMessageId;
+                replyToDiv.classList.add('repliedToDiv')
+                replyToDiv.setAttribute('onclick', `scrollAndHighlightMsg('${replyToMessageId}')`);
+            
+                var innerDiv = document.createElement('div');
+                innerDiv.style.backgroundColor = '#dedede';
+                replyToDiv.classList.add('repliedToMsgSender');
+                innerDiv.style.color = '#787878';
+                innerDiv.style.padding = '4px 10px';
+                innerDiv.textContent = senderName == '{{request.user.full_name}}' ? 'You' : senderName;
+            
+                var span = document.createElement('span');
+                span.classList.add('repliedToMessage');
+                span.style.padding = '4px 10px';
+                span.textContent = replyToMessageVal;
+            
+                replyToDiv.appendChild(innerDiv);
+                replyToDiv.appendChild(span);
+            
+                divSenderMsg.appendChild(replyToDiv);
             }
             divSenderMsg.appendChild(divMessage);
             divSenderMsg.appendChild(spanDate);
             divSenderMsg.appendChild(replyButtonDiv);
 
             var divOfReadStatus = document.createElement('div');
+            divOfReadStatus.classList.add("statusDiv");
             divOfReadStatus.innerHTML = isRead ? `<i class="fa-solid fa-circle-check"></i>` : `<i class="fa-regular fa-circle-check">`;
             divSenderMsg.appendChild(divOfReadStatus);
          
@@ -303,24 +527,11 @@
                 var data = JSON.parse(e.data);
                 if(data.event_name=="chat_message"){
                     if(data.sender_id!={{request.user.id}}){
-                        createMessageDiv(data.message, new Date().toISOString(),'receiver_msg',data.reply_to_message_id,data.reply_to_message_val,data.id,data.is_read);
+                        createMessageDiv(data.message, new Date().toISOString(),'receiver_msg',data.reply_to_message_id,data.reply_to_message_val,data.id,data.is_read,data.sender_name);
                     }
                     else{
-                        createMessageDiv(data.message, new Date().toISOString(),'sender_msg',data.reply_to_message_id,data.reply_to_message_val,data.id,data.is_read);
+                        createMessageDiv(data.message, new Date().toISOString(),'sender_msg',data.reply_to_message_id,data.reply_to_message_val,data.id,data.is_read,data.sender_name);
                     }
-                }
-                else if(data.event_name=="status"){
-                    if(data.user_id==receiverId){
-                        if(data.is_online){
-                            $("#userStatus").text('Online');
-                        }
-                        else{
-                            $("#userStatus").text('Offline');
-                        }
-                            
-                    }
-                    
-                    
                 }
                 else if(data.event_name=="msg_read"){
                     let messageIds=data.message_ids;
@@ -333,15 +544,32 @@
                         </path>
                     </svg><!-- <i class="fa-solid fa-circle-check"></i> Font Awesome fontawesome.com -->`;
 
-                    messageIds.forEach((item)=>{
-                        document.getElementById(`status-${item}`).innerHTML = readHtml;
-                    })
+                    if(data.sender_id == '{{request.user.id}}'){
+                        resetAndGetNotifications();
+                    }
 
+                    messageIds.forEach((item)=>{
+                        let senderMsgDiv = document.getElementById(item);
+                        if (senderMsgDiv && senderMsgDiv.classList.contains('sender_msg')) {
+                            let statusDiv = senderMsgDiv.querySelector('.statusDiv');
+                            if (statusDiv) {
+                                let svgElement = statusDiv.querySelector('.svg-inline--fa.fa-circle-check');
+                                if (svgElement) {
+                                    svgElement.outerHTML = readHtml;
+                                }
+                            }
+                        }
+                    })
+                }
+                else if(data.event_name == "message_deleted"){
+                    let targetDiv = document.getElementById(data.deleted_message_id);
+                    if (targetDiv && (targetDiv.classList.contains("sender_msg") || targetDiv.classList.contains("receiver_msg"))) 
+                        targetDiv.querySelector('.message-content').innerHTML = 'This message was deleted';
+                        targetDiv.querySelector('.message-content').classList.add("deletedMessage");
                 }
                 else{
                     console.log("data",data);
                 }
-               
             };
 
             chatSocket.onclose = function(e) {
@@ -355,7 +583,7 @@
             $('#send-button').click(function() {
                 var messageInputDom = $('#chat-message-input');
                 var message = messageInputDom.val();
-                var chatInputDiv = document.querySelector('.chat-input');
+                var chatInputDiv = document.querySelector('.chatInputWrapperDiv');
                 var replyToMessageId="";
 
                 if (chatInputDiv) {
@@ -371,7 +599,7 @@
                             }
                         });
                     } else {
-                        console.log('There are no receiver_message or sender_message divs inside chat-input');
+                        console.log('There are no receiver_message or sender_message divs inside chatInputWrapperDiv');
                     }
                 }
 
@@ -382,8 +610,8 @@
                 
 
                 messageInputDom.val('');
-                Array.from(document.querySelector('.chat-input').children).filter(child => child.classList.contains('sender_msg')).forEach(child => child.remove());
-                Array.from(document.querySelector('.chat-input').children).filter(child => child.classList.contains('receiver_msg')).forEach(child => child.remove());
+                Array.from(document.querySelector('.chatInputWrapperDiv').children).filter(child => child.classList.contains('sender_msg')).forEach(child => child.remove());
+                Array.from(document.querySelector('.chatInputWrapperDiv').children).filter(child => child.classList.contains('receiver_msg')).forEach(child => child.remove());
             });
 
             $('#chat-message-input').on('keypress', function(e) {
@@ -479,6 +707,7 @@
                 var divOfReply = document.createElement('div');
                 divOfReply.innerHTML = `<button onclick="addDivtoChatBox('${id}')" class="btn btn-info" >Reply</button>`;
                 var divOfReadStatus = document.createElement('div');
+                divOfReadStatus.classList.add('statusDiv');
                 divOfReadStatus.innerHTML = isRead ? `<i class="fa-solid fa-circle-check"></i>` : `<i class="fa-regular fa-circle-check">`;
                 divSenderMsg.appendChild(divOfReply);
                 divSenderMsg.appendChild(divOfReadStatus);
@@ -487,4 +716,5 @@
 
     </script>
 </body>
+{% endblock %}
 </html>

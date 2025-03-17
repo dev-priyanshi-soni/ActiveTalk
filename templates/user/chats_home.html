@@ -1,3 +1,6 @@
+{% extends 'user/base.html' %}
+{% block content %}
+{% include 'user/header.html' %}
 {% load static %}
 {% load custom_filters %}
 <!DOCTYPE html>
@@ -13,6 +16,140 @@
 
     <link rel='stylesheet' href='//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.9.0/bootstrap-table.min.css'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        .page_container{
+            margin-top:90px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #6aafdf, #99caec); /* Green gradient */
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, #35a0ea, #5e8eb0); /* Darker green on hover */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+            transform: scale(1.05);
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        #toast-container > .toast-info {
+            font-size: 18px; /* Adjusted text size */
+            padding: 15px 20px 15px 50px; /* Extra left padding for the icon */
+            line-height: 1.5;
+        }
+        
+        #toast-container > .toast-info::before {
+            font-size: 22px; /* Adjust icon size */
+            left: 15px; /* Adjust icon position */
+            top: 50%; 
+            transform: translateY(-50%);
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+            padding: 10px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #666;
+            position: relative;
+        }
+
+        .tab-btn.active {
+            color: #007bff;
+        }
+
+        .tab-btn.active:after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #007bff;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .chat-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .chat-item:hover {
+            background: #f8f9fa;
+        }
+
+        .chat-header h4 {
+            margin: 0;
+            color: #333;
+        }
+
+        .chat-preview {
+            margin-top: 5px;
+            color: #666;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sender {
+            font-weight: 500;
+        }
+
+        .time {
+            color: #999;
+            font-size: 12px;
+            margin-left: auto;
+        }
+
+        .unread-count {
+            background: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+    </style>
 </head>
 
 <body>
@@ -35,20 +172,50 @@
           </div>
         </div>
       </div>
-    <div>Friends List</div>
-    <button onclick="window.location.href='{% url 'signout' %}'"
-    >Logout</button>
+    <div class="page_container">
+        <button onclick="window.location.href='{% url 'signout' %}'"
+        >Logout</button>
 
-    <button onclick="showCreateGroupModal()" > Create group </button>
-    <div>
+        <button onclick="showCreateGroupModal()" > Create group </button>
+        {% comment %} <div class="search-container">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search users..." style="margin: 10px 0;">
+            <div id="searchResults" style="max-height: 200px; overflow-y: auto;">
+            </div>
+        </div> {% endcomment %}
+        <div class="tabs">
+            <button class="tab-btn" onclick="switchTab('users')">Users</button>
+            <button class="tab-btn" onclick="switchTab('groups')">New Groups</button>
+            <button class="tab-btn active" onclick="switchTab('chats')">Chats</button>
+        </div>
+        <div id="users-tab" class="tab-content">
+            <input type="text" class="search-input" placeholder="Search users..." onkeyup="searchUsers(this.value)">
+            <div class="users-data" id="searchResults">
+            
+            </div>
+        </div>
+        <div id="groups-tab" class="tab-content">
+            <input type="text" class="search-input" placeholder="Search groups..." onkeyup="handleGroupSearch(this.value)">
+            <div class="groups-data">
+            </div>
+        </div>
+
+        <div id="chats-tab" class="tab-content active">
+            <input type="text" class="search-input" placeholder="Search chats..." onkeyup="searchChats(this.value)">
+            <div class="chats-data">
+            
+            </div>
+        </div>
+    </div>
+
+    {% comment %} <div>
         {% for user in friends_data %}
         <div id="{{user.id}}">
             <p>{{user.full_name}}</p>
             <button onclick="window.location.href='{% url 'chats_page' user.id %}'">Chat</button>
         </div>
         {% endfor %}
-    </div>
-    <div>Other users List</div>
+    </div> {% endcomment %}
+    {% comment %} <div>Other users List</div>
 
     <div>
         {% for user in users_data %}
@@ -62,15 +229,319 @@
     <div>
       groups data
       {% for obj in groups_data %}
-      <div id="{{obj.id}}" onclick="window.location.href='group_chat/{{obj.id}}/' ">
+      <div id="{{obj.id}}" style="cursor:pointer;" onclick="window.location.href='group_chat/{{obj.id}}/' ">
         {{obj.name}}
       </div>
       {% endfor %}
-    </div>
+    </div> {% endcomment %}
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/css/toastr.css" rel="stylesheet"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/js/toastr.js"></script>
+
+    <script>
+      let groupCurrentPage = 1;
+      let groupIsLoading = false;
+      let groupHasMoreData = true;
+      let groupSearchTimeout = null;
+
+      function resetSearchGroup(){
+        groupCurrentPage = 1;
+        groupIsLoading = false;
+        groupHasMoreData = true;
+        groupSearchTimeout = null;
+        $(".groups-data").empty();
+      }
+
+      function debounce(func, wait) {
+          return function(...args) {
+              clearTimeout(groupSearchTimeout);
+              groupSearchTimeout = setTimeout(() => func.apply(this, args), wait);
+          };
+      }
+
+      const handleGroupSearch = debounce((query) => {
+          groupCurrentPage = 1;
+          groupHasMoreData = true;
+          $('.groups-data').empty();
+          searchGroups(query);
+      }, 300);
+
+      function searchGroups(query) {
+          if (groupIsLoading || !groupHasMoreData) return;
+
+          groupIsLoading = true;
+          
+          $.ajax({
+              url: "{% url 'get_newly_joined_groups' %}",
+              method: "GET", 
+              data: {
+                  search: query,
+                  page: groupCurrentPage,
+                  per_page: 10
+              },
+              success: function(response) {
+                  if (response.Error === 'NA') {
+                      const results = response.data;
+                      
+                      results.groups.forEach(group => {
+                          $('.groups-data').append(`
+                              <div class="group-item" style="padding: 10px; border-bottom: 1px solid #eee;">
+                                  <span>${group.name}</span>
+                                  <button class="btn btn-sm btn-primary float-right" 
+                                          onclick="window.location.href='{% url 'group_chat' 0 %}'.replace('0', '${group.id}')">
+                                      Open Chat
+                                  </button>
+                              </div>
+                          `);
+                      });
+
+                      groupHasMoreData = results.has_next;
+                      groupCurrentPage++;
+                  }
+                  groupIsLoading = false;
+              },
+              error: function(xhr, status, error) {
+                  console.error("Error searching groups:", error);
+                  groupIsLoading = false;
+              }
+          });
+      }
+
+      // Infinite scroll handler
+      $('#groups-tab').on('scroll', function() {
+          const scrollHeight = $(this).prop('scrollHeight');
+          const scrollTop = $(this).scrollTop();
+          const height = $(this).height();
+
+          if (scrollTop + height >= scrollHeight - 100) { // Load more when near bottom
+              searchGroups($('.search-input').val());
+          }
+      });
+   </script>
+
+
+    <script>
+      
+      $(document).ready(function(){
+        searchChats('');
+      })
+
+      function switchTab(tabName) {
+          document.querySelectorAll('.tab-btn').forEach(btn => {
+              btn.classList.remove('active');
+          });
+          document.querySelectorAll('.tab-content').forEach(content => {
+              content.classList.remove('active');
+          });
+
+          document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');
+          document.getElementById(`${tabName}-tab`).classList.add('active');
+
+          if (tabName === 'chats') {
+              searchChats('');
+          } else if (tabName === 'groups') {
+              searchGroups('');
+          } else if (tabName === 'users') {
+              searchUsers('');
+          }
+      }
+
+      let chatsCurrentPage = 1;
+      let chatsIsLoading = false;
+      let chatsHasMore = true;
+      let chatsSearchQuery = '';
+
+      function searchChats(query) {
+          // Reset pagination when new search is performed
+          chatsCurrentPage = 1;
+          chatsHasMore = true;
+          chatsSearchQuery = query;
+          
+          // Clear existing chats
+          $('.chats-data').empty();
+          
+          // Load first page
+          loadChats(query, chatsCurrentPage);
+      }
+
+      function loadChats(query, page) {
+          if (chatsIsLoading || !chatsHasMore) return;
+          
+          chatsIsLoading = true;
+          
+          $.ajax({
+              url: "{% url 'get_chat_summaries' %}",
+              method: "GET",
+              data: {
+                  search: query,
+                  page: page,
+                  per_page: 10
+              },
+              success: function(response) {
+                  if (response.Error === 'NA') {
+                      const chats = response.data.summaries;
+                      
+                      chats.forEach(chat => {
+                          let chatName = chat.chat_with;
+                          let chatHtml = `
+                              <div class="chat-item" data-url=${chat.url_of_chat_page} onclick="window.location.href='${chat.url_of_chat_page}'">
+                                  <div class="chat-header">
+                                      <h4>${chatName}</h4>
+                                  </div>
+                                  <div class="chat-preview">
+                                      <span class="sender">${chat.last_message_sent_by_id == {{ request.user.id }} ? 'You' : chat.last_message_sent_by_full_name}:</span>
+                                      <span class="message">${chat.last_message_sent_body}</span>
+                                      <span class="time">${formatTimeAgo(chat.last_message_time)}</span>
+                                      ${chat.unread_count > 0 ? 
+                                          `<span class="unread-count">${chat.unread_count}</span>` : 
+                                          ''}
+                                  </div>
+                              </div>
+                          `;
+                          
+                          $('.chats-data').append(chatHtml);
+                      });
+
+                      chatsHasMore = response.data.has_next;
+                      chatsIsLoading = false;
+                  }
+              },
+              error: function() {
+                  chatsIsLoading = false;
+              }
+          });
+      }
+
+      function formatTimeAgo(dateString) {
+          const date = new Date(dateString);
+          const now = new Date();
+          const diffInSeconds = Math.floor((now - date) / 1000);
+          
+          if (diffInSeconds < 60) {
+              return 'Just now';
+          }
+          
+          const diffInMinutes = Math.floor(diffInSeconds / 60);
+          if (diffInMinutes < 60) {
+              return `${diffInMinutes}m ago`;
+          }
+          
+          const diffInHours = Math.floor(diffInMinutes / 60);
+          if (diffInHours < 24) {
+              return `${diffInHours}h ago`;
+          }
+          
+          const diffInDays = Math.floor(diffInHours / 24);
+          if (diffInDays < 7) {
+              return `${diffInDays}d ago`;
+          }
+          
+          const diffInWeeks = Math.floor(diffInDays / 7);
+          if (diffInWeeks < 4) {
+              return `${diffInWeeks}w ago`;
+          }
+          
+          const diffInMonths = Math.floor(diffInDays / 30);
+          if (diffInMonths < 12) {
+              return `${diffInMonths}mo ago`;
+          }
+          
+          const diffInYears = Math.floor(diffInDays / 365);
+          return `${diffInYears}y ago`;
+      }
+
+      // Infinite scroll handler
+      $('.chats-data').scroll(function() {
+          const div = $(this)[0];
+          if (div.scrollHeight - div.scrollTop <= div.clientHeight + 100) {
+              chatsCurrentPage++;
+              loadChats(chatsSearchQuery, chatsCurrentPage);
+          }
+      });
+  </script>
+
+
+   
+
+    <script>
+      let usersSearchTimeout;
+      const usersDebounceDelay = 300;
+      let usersCurrentPage = 1;
+      let usersIsLoading = false;
+      let usersHasMore = true;
+
+      function debounceUsersSearch(searchQuery) {
+          clearTimeout(usersSearchTimeout);
+          usersSearchTimeout = setTimeout(() => {
+              usersCurrentPage = 1;
+              usersHasMore = true;
+              searchUsers(searchQuery, true);
+          }, usersDebounceDelay);
+      }
+
+      function searchUsers(searchQuery, resetResults = false) {
+          if (usersIsLoading || !usersHasMore) return;
+          
+          usersIsLoading = true;
+          
+          $.ajax({
+              url: "{% url 'get_users' %}",
+              method: "GET",
+              data: {
+                  search: searchQuery,
+                  page: usersCurrentPage,
+                  per_page: 10
+              },
+              success: function(response) {
+                  if (response.Error === 'NA') {
+                      const results = response.data;
+                      
+                      if (resetResults) {
+                          $('#searchResults').empty();
+                      }
+
+                      results.users.forEach(user => {
+                          $('#searchResults').append(`
+                              <div class="search-result-item" style="padding: 10px; border-bottom: 1px solid #eee;">
+                                  <span>${user.full_name}</span>
+                                  <span class="text-muted ml-2">${user.is_online ? 'Online' : 'Offline'}</span>
+                                  <button class="btn btn-sm btn-primary float-right" 
+                                          onclick="window.location.href='{% url 'chats_page' 0 %}'.replace('0', '${user.id}')">
+                                      Chat
+                                  </button>
+                              </div>
+                          `);
+                      });
+
+                      usersHasMore = results.has_next;
+                      if (usersHasMore) {
+                          usersCurrentPage++;
+                      }
+                  }
+              },
+              error: function(xhr, status, error) {
+                  console.error("Error searching users:", error);
+              },
+              complete: function() {
+                  usersIsLoading = false;
+              }
+          });
+      }
+
+      $('#searchInput').on('input', function() {
+          const searchQuery = $(this).val().trim();
+          debounceUsersSearch(searchQuery);
+      });
+
+      // Infinite scroll for search results
+      $('#searchResults').on('scroll', function() {
+          if ($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight - 20) {
+              const searchQuery = $('#searchInput').val().trim();
+              searchUsers(searchQuery);
+          }
+      });
+  </script>
 
     <script>
 
@@ -98,7 +569,10 @@
               },
               success: function(response){
                 if(response.Error=="NA"){
-                  toastr.info('Group created successfully!');
+                    toastr.info('Group created successfully!');
+                    //if ($('#groups-tab').hasClass('active')) {
+                    resetSearchGroup();
+                    searchGroups(''); //refreshing the list of groups.
                 }
                 else{
                   toastr.error(response.Error);
@@ -114,4 +588,5 @@
     </script>
 
 </body>
+{% endblock %}
 </html>

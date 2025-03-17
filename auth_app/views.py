@@ -1,7 +1,6 @@
 from django.shortcuts import render,redirect
 from .models import User
 from django.contrib.auth import logout
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import login as auth_login, authenticate
 
 def login_view(request):
@@ -23,6 +22,8 @@ def signup_view(request):
     return render(request,'user/signup.html')
 
 def signup(request):  
+    if request.user.is_authenticated:
+        return redirect("home")
     username=request.POST.get("username")
     password=request.POST.get("password")
     full_name=request.POST.get("full_name")

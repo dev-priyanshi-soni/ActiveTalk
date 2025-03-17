@@ -1,0 +1,286 @@
+
+<div class="header" style="position:fixed; top:0px;width:100%;background-color: #f8f9fa; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <button onclick="history.back()" class="back-button" style="border: none; cursor: pointer; font-size: 20px;">
+            <i class="fa fa-arrow-left"></i>
+        </button>
+        <div class="user-greeting" style="font-size: 20px; font-weight: 500;">
+            Hello {{request.user.full_name}} 👋
+        </div>
+        <div style="display:none;" id="NotificationMsg"></div>
+    </div>
+    
+    <div class="notifications-wrapper" style="position: relative;">
+        <div class="notification-bell" style="cursor: pointer; font-size: 20px;" onclick="toggleNotifications()">
+            <i class="fa fa-bell"></i>
+            <span class="notification-count" style="position: absolute; top: -8px; right: -8px; background-color: #dc3545; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px;">0</span>
+        </div>
+
+        <div id="notifications-dropdown" style="display: none; position: absolute; right: 0; top: 100%; width: 300px; max-height: 400px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000;">
+            <div class="notifications-header" style="padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: bold;">Notifications</span>
+                <!--  <button onclick="markAllRead()" style="border: none; background: none; color: #007bff; cursor: pointer;">Mark all read</button> -->
+            </div>
+            <div id="notifications-list" style="padding: 0;">
+                <!-- Notifications will be dynamically added here -->
+            </div>
+            <div id="notifications-loader" style="display: none; text-align: center; padding: 10px;">
+                Loading...
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+<script>
+let notificationSocket = null;
+let notificationCount = 0;
+let notifications = [];
+let currentPage = 1;
+let totalPages = 1;
+let isLoading = false;
+
+
+function resetAndGetNotifications(){
+    console.log("inside resetAndGetNotifications");
+    loadNotifications(1);
+    notificationCount = 0;
+    notifications = [];
+    currentPage = 1;
+    totalPages = 1;
+    isLoading = false;
+}
+
+function showNotificationSnackbar(message){
+    setTimeout(()=>{
+        $("#NotificationMsg").css("display",'block');
+        $("#NotificationMsg").text(message);
+    },3000)
+    
+}
+
+async function loadNotifications(page = 1) {
+    if (isLoading) return;
+    isLoading = true;
+    
+    document.getElementById('notifications-loader').style.display = 'block';
+    
+    try {
+        const response = await fetch(`/get-notifications/?page=${page}`);
+        const data = await response.json();
+        
+        if (data.Status === 'Success') {
+            if (page === 1) {
+                notifications = data.data.notifications;
+            } else {
+                notifications = [...notifications, ...data.data.notifications];
+            }
+            
+            totalPages = data.data.total_pages;
+            currentPage = data.data.current_page;
+            
+            updateNotificationsList();
+            updateNotificationCount(notifications.filter(n => !n.is_read).length);
+        }
+    } catch (error) {
+        console.error('Error loading notifications:', error);
+    } finally {
+        isLoading = false;
+        document.getElementById('notifications-loader').style.display = 'none';
+    }
+}
+
+function connectNotificationSocket() {
+    const userId = '{{request.user.id}}';
+    notificationSocket = new WebSocket(`ws://${window.location.host}/notifications/${userId}/`);
+
+    notificationSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        
+        if (data.type === 'notification_message') {
+            console.log("data is",data);
+            notifications.unshift({
+                id: data.notification_id,
+                notification_message: data.message,
+                notification_type: data.notification_type,
+                created_at: data.created_at,
+                sender_id: data.sender_id,
+                is_read: false
+            });
+
+            //showNotificationSnackbar(data.message);
+            updateNotificationsList();
+            updateNotificationCount(notifications.filter(n => !n.is_read).length);
+
+            const chatItems = document.querySelectorAll('.chat-item');
+            console.log("chatItems",chatItems);
+            chatItems.forEach(chatItem => {
+                if (chatItem.dataset.url === data.url) {
+                    const chatPreview = chatItem.querySelector('.chat-preview');
+                    if (chatPreview) {
+                        // Update message preview
+                        const messageSpan = chatPreview.querySelector('.message');
+                        if (messageSpan) {
+                            messageSpan.textContent = data.last_message_body;
+                        }
+                        
+                        // Update time
+                        const timeSpan = chatPreview.querySelector('.time');
+                        if (timeSpan) {
+                            timeSpan.textContent = 'Just now';
+                        }
+                        
+                        // Update unread count
+                        let unreadSpan = chatPreview.querySelector('.unread-count');
+                        if (unreadSpan) {
+                            // Increment existing unread count
+                            const currentCount = parseInt(unreadSpan.textContent);
+                            unreadSpan.textContent = currentCount + 1;
+                        } else {
+                            // Add new unread count badge
+                            unreadSpan = document.createElement('span');
+                            unreadSpan.className = 'unread-count';
+                            unreadSpan.textContent = '1';
+                            chatPreview.appendChild(unreadSpan);
+                        }
+                    }
+                }
+            });
+            
+            // Show toaster notification
+             showToast(data.message);
+        }
+    };
+}
+
+ function showToast(message) {
+    Toastify({
+        text: message,
+        duration: 8000,
+        gravity: "top",
+        position: "right",
+        backgroundColor: "#4CAF50",
+        style: {
+            right: "50px"  
+        }
+    }).showToast();
+} 
+
+function toggleNotifications() {
+    const dropdown = document.getElementById('notifications-dropdown');
+    const isHidden = dropdown.style.display === 'none';
+    
+    dropdown.style.display = isHidden ? 'block' : 'none';
+    
+    if (isHidden) {
+        loadNotifications(); // Always load notifications when opening dropdown
+    }
+}
+
+function updateNotificationCount(count) {
+    notificationCount = count;
+    document.querySelector('.notification-count').textContent = count;
+}
+
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+}
+
+function updateNotificationsList() {
+    const notifList = document.getElementById('notifications-list');
+    notifList.innerHTML = '';
+
+    notifications.forEach(notification => {
+        const notif = document.createElement('div');
+        notif.setAttribute('id', `notif-${notification.id}`);
+        notif.style.padding = '10px';
+        notif.style.borderBottom = '1px solid #eee';
+        notif.style.cursor = 'pointer';
+        notif.style.backgroundColor = notification.is_read ? 'white' : '#f0f8ff';
+        
+        notif.innerHTML = `
+            <div style="font-size: 14px; margin-bottom: 5px;">${notification.notification_message}</div>
+            <div style="font-size: 12px; color: #666;">${formatTimestamp(notification.created_at)}</div>
+        `;
+        
+        notif.addEventListener('click', () => {
+            if (!notification.is_read) {
+                markNotificationRead([notification.id]);
+            }
+        });
+
+        notifList.appendChild(notif);
+    });
+}
+
+
+async function markNotificationRead(notificationIds) {
+    try {
+        const response = await fetch('/mark-notification-read/', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                notification_ids: notificationIds
+            })
+        });
+        
+        if (response.ok) {
+            notifications = notifications.map(notification => {
+                if (notificationIds.includes(notification.id)) {
+                    return {...notification, is_read: true};
+                }
+                return notification;
+            });
+            
+            updateNotificationsList();
+            updateNotificationCount(notifications.filter(n => !n.is_read).length);
+            notificationIds.forEach(id => {
+                const notifElement = document.getElementById(`notif-${id}`);
+                if (notifElement) {
+                    notifElement.remove();
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+    }
+}
+
+async function markAllRead() {
+    const unreadNotifications = notifications.filter(n => !n.is_read);
+    const unreadIds = unreadNotifications.map(n => n.id);
+    
+    if (unreadIds.length > 0) {
+        await markNotificationRead(unreadIds);
+    }
+}
+
+// Handle infinite scroll
+document.getElementById('notifications-dropdown').addEventListener('scroll', function(e) {
+    const dropdown = e.target;
+    if (dropdown.scrollHeight - dropdown.scrollTop - dropdown.clientHeight < 50) {
+        if (currentPage < totalPages && !isLoading) {
+            loadNotifications(currentPage + 1);
+        }
+    }
+});
+
+document.addEventListener('click', (event) => {
+    const dropdown = document.getElementById('notifications-dropdown');
+    const bell = document.querySelector('.notification-bell');
+    if (!bell.contains(event.target) && !dropdown.contains(event.target)) {
+        dropdown.style.display = 'none';
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    connectNotificationSocket();
+    loadNotifications(); // Load notifications when page loads
+});
+</script>
