@@ -1,6 +1,8 @@
+{% extends 'user/base.html' %}
+{% block content %}
+{% include 'user/header.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
+{% load custom_filters %}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -32,18 +34,19 @@
         .chat-container {
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            height: calc(100vh - 110px);
             max-width: 800px; /* Adjust as needed */
             margin: 0 auto; /* Center the container */
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Enhanced shadow for depth */
+            margin-top: 90px;
         }
 
         /* Styles for chat messages display */
         .chat-messages {
-            flex: 1; /* Takes up remaining space */
+            height: calc(100vh - 270px);
             overflow-y: auto; /* Scrollable content */
             padding: 10px;
             background-color: #f9f9f9; /* Light background for chat messages */
@@ -153,41 +156,206 @@
         .btn-info {
         margin-top: 5px;
         }
+        
+        button {
+            background: linear-gradient(135deg, #6aafdf, #99caec); /* Green gradient */
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        button[disabled] {
+            opacity: 0.5;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, #35a0ea, #5e8eb0); /* Darker green on hover */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+            transform: scale(1.05);
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
 
-                
+        
+    .modal-content {
+        background: linear-gradient(135deg, #1E3C72, #2A5298); /* Deep Blue Gradient */
+        color: white;
+        border-radius: 10px;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        border: none;
+    }
+
+    /* Modal Header */
+    .modal-header {
+        background: #0F4C81;
+        color: white;
+        border-bottom: 2px solid #1A73E8;
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    /* Close Button */
+    .btn-close {
+        background-color: white;
+        opacity: 0.8;
+        transition: opacity 0.3s ease-in-out;
+    }
+
+    .btn-close:hover {
+        opacity: 1;
+    }
+
+    /* Modal Body */
+    .modal-body {
+        padding: 20px;
+    }
+
+    /* Tables */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #0F4C81;
+        color: white;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    th, td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #1A73E8;
+    }
+
+    th {
+        background: #1A73E8;
+        font-weight: bold;
+    }
+
+    tbody tr:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Hide tables initially */
+    #deliveredToMembersTable,
+    #readBymembersTable,
+    #notDeliveredToMembersTable {
+        display: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+            .modal-dialog {
+                max-width: 90%;
+            }
+    }
+
+    .chatInputWrapperDiv .receiver_msg, .chatInputWrapperDiv .sender_msg{
+        float:unset;
+        width: 100%;
+        max-width: 100%;
+    }
+    .repliedToDiv {
+        background: linear-gradient(135deg, #d7e9ff, #b0d1ff); /* Smooth gradient */
+        border-radius: 10px;
+        overflow: hidden;
+        height: auto;
+        border-left: 5px solid #4a90e2; /* Accent border */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 10px;
+        cursor: pointer;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease-in-out;
+    }
+    
+    .repliedToDiv:hover {
+        background: linear-gradient(135deg, #b5d3ff, #8ebdff);
+        transform: scale(1.02);
+    }
+    
+    .repliedToMsgSender {
+        background: #4a90e2;
+        color: #ffffff;
+        padding: 8px 14px;
+        font-weight: bold;
+        border-radius: 6px 6px 0 0;
+        font-size: 14px;
+    }
+    
+    .repliedToMessage {
+        padding: 10px 14px;
+        color: #1f1f1f;
+        font-style: italic;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 0 0 6px 6px;
+        font-size: 14px;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+    }    
+    .chat_header_btns{
+        font-size:12px;
+        padding:8px 10px;
+    }
+    .deletedMessage {
+        font-style: italic;
+        color: #667781; /* Muted greyish-blue color like WhatsApp */
+        background-color: #f0f2f5; /* Light grey background */
+        border-radius: 8px;
+        padding: 5px 10px;
+        display: inline-block;
+        font-size: 14px;
+        text-align: center;
+        max-width: 70%;
+    }    
     </style>
 </head>
 <body>
 
     <div class="chat-container">
-        <h1>{{group.name}}</h1>
-        <h3 id="">Created on: 
-
-            <script>
-              
-                function formatDate(isoDate) {
-                    const date = new Date(isoDate);
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    const seconds = String(date.getSeconds()).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
-                    const year = date.getFullYear();
-                    return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
-                }
-
-                if('{{group.created_at}}'){
-                    document.write(formatDate('{{group.created_at}}'));
-                }
-                
-            </script>
-        </h3>
-
-        <button onclick="openParticipantsModal()">View Participants</button>
-
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <h5 class="mb-0">{{group.name}}</h5> 
+                <h6 id="">Created on:
+                    <script>
+                    
+                        function formatDate(isoDate) {
+                            const date = new Date(isoDate);
+                            const hours = String(date.getHours()).padStart(2, '0');
+                            const minutes = String(date.getMinutes()).padStart(2, '0');
+                            const seconds = String(date.getSeconds()).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+                            const year = date.getFullYear();
+                            return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+                        }
+        
+                        if('{{group.created_at}}'){
+                            document.write(formatDate('{{group.created_at}}'));
+                        }
+                        
+                    </script>
+                </h6>
+            </div>
+    
+            <div class="d-flex align-items-center gap-2">
+                <button class="chat_header_btns"onclick="openParticipantsModal()">View Participants</button>
+                <button class="chat_header_btns" onclick="copyLink('{{group.id}}')">Copy group Link and invite friends</button>
+            </div>
+        </div>
         {% if request.user.id == group_admin %}
             Admin: You
-            <button onclick="copyLink('{{group.id}}')">Copy group Link and invite friends</button>
         {% else %}
             Admin : {{group_admin_name}}
         {% endif %}
@@ -196,6 +364,7 @@
         <div id="downScrollButton" style="display:none;">
             <span id="countOfMsg"></span>
         </div>
+        
         <div class="chat-messages">
 
             {% for i in group_chat_messages %}
@@ -205,17 +374,15 @@
                 {% if i.sender == request.user.id %}
                     <div class="sender_msg" id="{{i.id}}">
                         {% if i.parent_message %}
-                            <div style="background-color:#f2d9e6;border-radius:15px;height:70px;" id="{{i.parent_message.id}}" onclick="scrollAndHighlightMsg('{{i.parent_message.id}}')">
-                                <div style="background-color:#b3cccc;border-radius:15px;">{{i.parent_message.sender_full_name}}</div>
-                                <span>{{i.parent_message.message}}</span>
+                            <div style="background-color:#f2d9e6;border-radius:5px; overflow:hidden;height:70px;" class="repliedToDiv" id="{{i.parent_message.id}}" onclick="scrollAndHighlightMsg('{{i.parent_message.id}}')">
+                                <div class="repliedToMsgSender" style="background-color:#dedede;color:#787878;padding: 4px 10px;">{{i.parent_message.sender_full_name}}</div>
+                                <span class="repliedToMessage" style="padding: 4px 10px;">{{i.parent_message.message|default:"No message available"}}</span>
                             </div>
                         {% endif %}
+                        
+                        <div class="message-content {% if i.is_deleted %}deletedMessage{% endif %}">{{ i.message }}</div>
 
-                        
-                        
-                        <div>{{ i.message }} </div>
-                        
-                        <span>
+                        <span class="d-block">
                             <script>
                                 // Convert ISO 8601 date string to a formatted date
                                 function formatDate(isoDate) {
@@ -241,14 +408,26 @@
                         {% else %}
                             <div id="status-{{i.id}}"><i class="fa-regular fa-circle-check"></i></div>
                         {% endif %}
-
-                    </div>
+                    </div> 
                 {% else %}
                     <div class="receiver_msg" id="{{i.id}}">
                         <div class="senderNameBlock" onclick="window.location.href='/chats_page/{{i.sender}}/'">{{i.sender_name}}</div>
-                        <div>{{ i.message }} </div>
-
-                        <span>
+                        <div>
+                            {% if i.parent_message %}
+                                <div style="background-color:#f2d9e6;border-radius:5px; overflow:hidden;height:70px;" class="repliedToDiv" id="{{i.parent_message.id}}" onclick="scrollAndHighlightMsg('{{i.parent_message.id}}')">
+                                    <div class="repliedToMsgSender" style="background-color:#dedede;color:#787878;padding: 4px 10px;">
+                                        {% if i.parent_message.sender_full_name == request.user.full_name %}
+                                            You
+                                        {% else %}
+                                            {{ i.parent_message.sender_full_name }}
+                                        {% endif %}
+                                    </div>                                    
+                                    <span class="repliedToMessage" style="padding: 4px 10px;">{{i.parent_message.message|default:"No message available"}}</span>
+                                </div>
+                            {% endif %}   
+                            <div class="message-content {% if i.is_deleted %}deletedMessage{% endif %}">{{ i.message }}</div>
+                        </div>
+                        <span class="d-block">
                             <script>
                                 // Convert ISO 8601 date string to a formatted date
                                 function formatDate(isoDate) {
@@ -268,12 +447,12 @@
                         <span>{{i.id}}</span>
                         <div><button onclick="addDivtoChatBox('{{i.id}}')" class="btn btn-info" >Reply</button></div>
                       
-                    </div>
+                    </div>               
                 {% endif %}
             {% endfor %}
 
-        </div>
-
+        </div> 
+     
         <div class="modal fade" id="participantsModal" tabindex="-1" data-messageId="" aria-labelledby="participantsModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -362,9 +541,11 @@
         </div>
 
 
-        <div class="chat-input">
-            <input type="text" id="chat-message-input" autocomplete="off" placeholder="Type your message...">
-            <button id="send-button">Send</button>
+        <div class="chatInputWrapperDiv mb-0">
+            <div class="chat-input mb-0">
+                <input type="text" id="chat-message-input" autocomplete="off" placeholder="Type your message...">
+                <button id="send-button">Send</button>
+            </div>
         </div>
     </div>
 
@@ -469,8 +650,9 @@
                 const messageButton=document.createElement('button');
                 messageButton.textContent='Chat'
                 messageButton.onclick=function(){
-                    window.location.href=`/chats_page/${participant.user}`;
+                    window.open(`/chats_page/${participant.user}`, '_blank');
                 }
+                messageButton.disabled = participant.user=='{{request.user.id}}' ? true :false;
                 messageCell.appendChild(messageButton);
                 row.appendChild(messageCell);
 
@@ -564,14 +746,14 @@
                         if (item.read_at && item.delivered_at){
                             let tr=document.createElement('tr');
                             tr.setAttribute('id',item.member_id);
-                            tr.innerHTML=`<td>${item.member_full_name}</td><td>${item.delivered_at}</td><td>${item.read_at}</td>`;
+                            tr.innerHTML=`<td>${item.member_full_name}</td><td>${item.delivered_at}</td><td>${formatDate(item.read_at)}</td>`;
                             readBymembersDiv.appendChild(tr);
                             $("#readBymembersTable").show();
                         }
                         else if(item.delivered_at && !item.read){
                             let tr=document.createElement('tr');
                             tr.setAttribute('id',item.member_id);
-                            tr.innerHTML=`<td>${item.member_full_name}</td><td>${item.delivered_at}</td><td>Not Read</td>`;
+                            tr.innerHTML=`<td>${item.member_full_name}</td><td>${formatDate(item.delivered_at)}</td><td>Not Read</td>`;
                             deliveredToMembersDiv.appendChild(tr);
                             $("#deliveredToMembersTable").show();
                         }
@@ -617,7 +799,8 @@
             }
         }
 
-        function addDivtoChatBox(id){
+
+        {% comment %} function addDivtoChatBox(id){
             var messageContent = document.getElementById(id);
             var chatMessageInput = document.getElementById('chat-message-input');
             if (messageContent && chatMessageInput) {
@@ -626,6 +809,18 @@
                 parent.insertBefore(messageContent, chatMessageInput);
             }
             
+        } {% endcomment %}
+         
+        function addDivtoChatBox(id) {
+            console.log("id is", id);
+            // Remove existing sender_msg or receiver_msg div inside chatInputWrapperDiv
+            document.querySelectorAll('.chatInputWrapperDiv .sender_msg, .chatInputWrapperDiv .receiver_msg')
+            .forEach(div => div.remove());
+
+            let clone = document.getElementById(id).cloneNode(true);
+            document.querySelector('.chatInputWrapperDiv').insertBefore(clone, document.querySelector('.chat-input'));
+            clone.style.display = 'block';
+
         }
 
         function formatDate(isoDate) {
@@ -648,10 +843,29 @@
                 parent.insertBefore(originalDiv, targetDiv);
             }
         }
-        function deleteChatMessage(){
-            
-        }
 
+        function deleteChatMessage(groupMessageIdToDelete) {
+            $.ajax({
+                url: `/delete_group_message/${groupMessageIdToDelete}/`, 
+                type: 'DELETE', 
+                headers: {
+                    'X-CSRFToken': '{{csrf_token}}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $(`#delete-group-msg-${groupMessageIdToDelete}`).remove();
+                        showSnackbar("Message deleted successfully!",'S');
+                    } else {
+                        showSnackbar("Failed to delete message.",'F');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error deleting message:", error);
+                    showSnackbar("Something went wrong!",'F');
+                }
+            });
+        }
+        
         function showDownScrollButton() {
             const downScrollButton = document.getElementById('downScrollButton');
             const countOfMsg = document.getElementById('countOfMsg');
@@ -686,36 +900,48 @@
         }
     
         function createMessageDiv(messageText, isoDate,className,replyToMessageId,replyToMessageVal,messageID,isRead,senderName) {
-            
             var divSenderMsg = document.createElement('div');
             divSenderMsg.classList.add(className);
             divSenderMsg.id = messageID;
             var divMessage = document.createElement('div');
+            divMessage.classList.add("message-content");
             divMessage.textContent = messageText;
             var spanDate = document.createElement('span');
             spanDate.textContent = formatDate(isoDate);
+            spanDate.classList.add("d-block");
             var infoButton = document.createElement('button');
             infoButton.textContent = 'Info';
             infoButton.onclick=function(){
                 openModal(messageID);
             }
+           
             var replyButtonDiv=document.createElement('div');
-            replyButtonDiv.innerHTML = `<button class="btn btn-info" onclick="addDivtoChatBox('${messageID}')">Reply</button><button style="del-btn" onclick="deleteChatMessage()">Delete</button>`;
-    
+            replyButtonDiv.innerHTML = `
+                <button class="btn btn-info" onclick="addDivtoChatBox('${messageID}')">Reply</button>
+                ${className === "sender_msg" ? `<button id="delete-group-msg-${messageID}" class="del-btn" onclick="deleteChatMessage('${messageID}')">Delete</button>` : ''}
+            `;
+
+
             if(replyToMessageId){
                 var replyToDiv = document.createElement('div');
                 replyToDiv.style.backgroundColor = '#f2d9e6';
-                replyToDiv.style.borderRadius = '15px';
+                replyToDiv.style.borderRadius = '5px';
                 replyToDiv.style.height = '70px';
+                replyToDiv.style.overflow = 'hidden';
                 replyToDiv.id = replyToMessageId;
+                replyToDiv.classList.add('repliedToDiv')
                 replyToDiv.setAttribute('onclick', `scrollAndHighlightMsg('${replyToMessageId}')`);
             
                 var innerDiv = document.createElement('div');
-                innerDiv.style.backgroundColor = '#b3cccc';
-                innerDiv.style.borderRadius = '15px';
-                innerDiv.textContent = 'test';
+                innerDiv.style.backgroundColor = '#dedede';
+                replyToDiv.classList.add('repliedToMsgSender');
+                innerDiv.style.color = '#787878';
+                innerDiv.style.padding = '4px 10px';
+                innerDiv.textContent = senderName == '{{request.user.full_name}}' ? 'You' : senderName;
             
                 var span = document.createElement('span');
+                span.classList.add('repliedToMessage');
+                span.style.padding = '4px 10px';
                 span.textContent = replyToMessageVal;
             
                 replyToDiv.appendChild(innerDiv);
@@ -726,11 +952,13 @@
             divSenderMsg.appendChild(divMessage);
             divSenderMsg.appendChild(spanDate);
             divSenderMsg.appendChild(replyButtonDiv);
-            divSenderMsg.appendChild(infoButton);
-
-            var divOfReadStatus = document.createElement('div');
-            divOfReadStatus.innerHTML = isRead ? `<i class="fa-solid fa-circle-check"></i>` : `<i class="fa-regular fa-circle-check">`;
-            divSenderMsg.appendChild(divOfReadStatus);
+            
+            if(className=="sender_msg"){
+                divSenderMsg.appendChild(infoButton);
+                var divOfReadStatus = document.createElement('div');
+                divOfReadStatus.innerHTML = isRead ? `<i class="fa-solid fa-circle-check"></i>` : `<i class="fa-regular fa-circle-check">`;
+                divSenderMsg.appendChild(divOfReadStatus);
+            }
          
             document.querySelector('.chat-messages').appendChild(divSenderMsg);
            
@@ -747,7 +975,7 @@
             }
 
             if(className=="receiver_msg"){
-                console.log("currentDivId is",currentDivId);
+                console.log("-----------------------9999-------------currentDivId is",currentDivId);
                 const distance = Math.abs(divSenderMsg.getBoundingClientRect().top - document.getElementById(currentDivId)?.getBoundingClientRect().top);
                 console.log("distance is",distance);
                 if(distance>=500){
@@ -826,7 +1054,6 @@
 
             chatSocket.onmessage = function(e) {
                 var data = JSON.parse(e.data);
-                console.log("data in onmessage is ",data);
                 if(data.event_name=="chat_message"){
                     if(data.sender_id!={{request.user.id}}){
                         const unreadMessagesElement = document.getElementById('unreadMessagesCount');
@@ -891,6 +1118,12 @@
                 }
 
                 else if(data.event_name=='message_read_by_user_in_group'){
+                    let senderIdOfMsgRead= data.sender_id;
+                    console.log("CONDN VAL IS----",senderIdOfMsgRead == '{{request.user.id}}');
+                    if(senderIdOfMsgRead == '{{request.user.id}}'){
+                        resetAndGetNotifications();
+                    }
+                    
                     const isOpen = $('#infoModal').hasClass('show');
                    
                     if(isOpen){
@@ -946,6 +1179,12 @@
                         }
                     }
                 }
+                else if(data.event_name == "message_deleted"){
+                    let targetDiv = document.getElementById(data.deleted_message_id);
+                    if (targetDiv && (targetDiv.classList.contains("sender_msg") || targetDiv.classList.contains("receiver_msg"))) 
+                        targetDiv.querySelector('.message-content').innerHTML = 'This message was deleted';
+                        targetDiv.querySelector('.message-content').classList.add("deletedMessage");
+                }
                 else{
                     console.log("data",data);
                 }
@@ -963,15 +1202,14 @@
             $('#send-button').click(function() {
                 var messageInputDom = $('#chat-message-input');
                 var message = messageInputDom.val();
-                var chatInputDiv = document.querySelector('.chat-messages');
+                var chatInputDiv = document.querySelector('.chatInputWrapperDiv');
                 var replyToMessageId="";
 
                 if (chatInputDiv) {
-                    var messages = chatInputDiv.querySelectorAll('.sender_msg, .receiver_msg');
+                    var messages = chatInputDiv.querySelectorAll('.receiver_msg');
                     console.log("messages",messages);
                     
                     if (messages.length > 0) {
-                        //debugger;
                         messages.forEach(function(div) {
                             if(div.id){
                                 replyToMessageId = div.id;  
@@ -979,19 +1217,19 @@
                             }
                         });
                     } else {
-                        console.log('There are no receiver_message or sender_message divs inside chat-input');
+                        console.log('There are no receiver_message or sender_message divs inside chatInputWrapperDiv');
                     }
                 }
 
                 chatSocket.send(JSON.stringify({
                     'message': message,
-                    'replyToMessageId':replyToMessageId
+                    'reply_to_message_id':replyToMessageId
                 }));
                 
 
                 messageInputDom.val('');
-                Array.from(document.querySelector('.chat-input').children).filter(child => child.classList.contains('sender_msg')).forEach(child => child.remove());
-                Array.from(document.querySelector('.chat-input').children).filter(child => child.classList.contains('receiver_msg')).forEach(child => child.remove());
+               Array.from(document.querySelector('.chatInputWrapperDiv').children).filter(child => child.classList.contains('sender_msg')).forEach(child => child.remove());
+               Array.from(document.querySelector('.chatInputWrapperDiv').children).filter(child => child.classList.contains('receiver_msg')).forEach(child => child.remove());
             });
 
             $('#chat-message-input').on('keypress', function(e) {
@@ -1002,7 +1240,7 @@
         });
 
         function replaceChatInputWithParticipantRemoval(message) {
-            const chatInput = document.querySelector('.chat-input');
+            const chatInput = document.querySelector('.chatInputWrapperDiv');
             const participantRemoval = document.createElement('div');
             participantRemoval.className = 'participant_removal'; 
             let currentUserName = '{{request.user.username}}';
@@ -1025,7 +1263,7 @@
             const scrollTop = chatMessagesElement.scrollTop;
             const clientHeight = chatMessagesElement.clientHeight;
     
-            console.log("Scroll check -> scrollHeight:", scrollHeight, "scrollTop:", scrollTop, "clientHeight:", clientHeight);
+            // console.log("Scroll check -> scrollHeight:", scrollHeight, "scrollTop:", scrollTop, "clientHeight:", clientHeight);
     
             if (scrollHeight - scrollTop <= clientHeight + 1) {
                 // Check throttle
@@ -1100,7 +1338,7 @@
                 divSenderName.classList.add('senderNameBlock')
                 divSenderName.textContent=senderName;
                 divSenderName.onclick=function(){
-                    window.location.href='/chats_page/'+senderId+'/';
+                    window.location.open('/chats_page/'+senderId+'/','_blank');
                 }
                 divSenderMsg.appendChild(divSenderName);
             }
@@ -1122,7 +1360,6 @@
             const unreadMessagesElement = document.getElementById('unreadMessagesCount');
             const unreadMessagesCount = unreadMessagesElement ? parseInt(unreadMessagesElement.textContent.split("Unread Messages")[1], 10) : 0;
             chatMessagesElement.addEventListener('scroll', onScrollToBottom);
-            //console.log("Unread messages count:", unreadMessagesCount);
     
             if (unreadMessagesCount) {
                 
@@ -1179,6 +1416,10 @@
 
                     if(messageIds.length==unreadMessagesCount){
                         $("#unreadMessagesCount").remove();
+                        if($("#countOfMsg").text()==unreadMessagesCount){
+                            $("#countOfMsg").text('');
+                            $("#downScrollButton").css('display','none');
+                        }
                     }
 
                 }
@@ -1302,7 +1543,7 @@
                     divSenderName.classList.add('senderNameBlock')
                     divSenderName.textContent=senderName;
                     divSenderName.onclick=function(){
-                        window.location.href='/chats_page/'+senderId+'/';
+                        window.open('/chats_page/'+senderId+'/','_blank');
                     }
                     divSenderMsg.appendChild(divSenderName);
                 }
@@ -1324,4 +1565,5 @@
     </script>
 
 </body>
+{% endblock %}
 </html>
